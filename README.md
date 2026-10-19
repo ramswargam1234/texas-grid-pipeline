@@ -19,7 +19,7 @@ Open-Meteo (weather) ────┘   idempotent,         partitioned year/mont
 ## Roadmap
 
 - [x] **Phase 1: Ingestion.** EIA + Open-Meteo loaders, pagination, monthly idempotent writes, unit tests
-- [x] **Phase 2: Storage.** Incremental sync of the Parquet lake to S3 (least-privilege IAM user); dbt can build straight from S3
+- [ ] **Phase 2: Storage.** Incremental sync of the Parquet lake to S3 (least-privilege IAM user); dbt can build straight from S3. *Code done and tested against mocked S3; live AWS deployment in progress.*
 - [x] **Phase 3: Transform.** dbt + DuckDB: staging, hourly fact table, weather-demand marts, data tests
 - [x] **Phase 4: Orchestrate.** Airflow 3 DAGs (daily incremental + manual backfill) in Docker Compose, with retries and an isolated pipeline virtualenv
 - [ ] **Phase 5: Serve.** Dashboard: demand vs. temperature, peak hours, forecast error
