@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: stg_eia__ercot_hourly
+    description: Cleaned, de-duplicated ERCOT hourly series from EIA (one row per hour and series type).
+    columns:
+      - name: period_utc
+        description: Start of the hour, UTC.
+        data_tests: [not_null]
+      - name: series_type
+        description: D = demand, DF = day-ahead forecast, NG = net generation.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['D', 'DF', 'NG']
+      - name: value_mwh
+        description: Energy for the hour in megawatt-hours.
+
+  - name: stg_weather__hourly
+    description: Cleaned, de-duplicated hourly weather per city (Fahrenheit, UTC).
+    columns:
+      - name: period_utc
+        data_tests: [not_null]
+      - name: city
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['dallas', 'houston', 'austin', 'san_antonio']
+      - name: temp_f
+        data_tests: [not_null]

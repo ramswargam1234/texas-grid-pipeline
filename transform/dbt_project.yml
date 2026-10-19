@@ -1,0 +1,23 @@
+name: texas_grid
+version: "1.0.0"
+config-version: 2
+profile: texas_grid
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Raw Parquet lake written by src/ingestion (relative to this folder).
+  raw_dir: "../data/raw"
+
+models:
+  texas_grid:
+    staging:
+      +materialized: table   # copy raw files into the warehouse so it is self-contained
+    intermediate:
+      +materialized: view
+    marts:
+      +materialized: table

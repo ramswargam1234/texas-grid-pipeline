@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: fct_grid_hourly
+    description: One row per hour — ERCOT demand, forecast and generation joined to Texas weather.
+    columns:
+      - name: period_utc
+        description: Start of the hour, UTC (primary key).
+        data_tests: [unique, not_null]
+      - name: period_local
+        description: Start of the hour, US Central time.
+      - name: forecast_error_mwh
+        description: Actual demand minus day-ahead forecast (positive = grid under-forecast).
+      - name: abs_pct_error
+        description: Absolute forecast error as a share of actual demand.
+      - name: cooling_degree_hours
+        description: max(avg Texas temp - 65°F, 0). Drives air-conditioning load.
+
+  - name: agg_grid_daily
+    description: Daily (Central time) peak demand, peak hour, weather and forecast accuracy.
+    columns:
+      - name: date_local
+        data_tests: [unique, not_null]
+      - name: peak_hour_local
+        description: Local hour (0-23) when demand peaked that day.
+
+  - name: agg_demand_by_temperature
+    description: Average and peak demand per 5°F band of average Texas temperature.
+    columns:
+      - name: temp_band_f
+        data_tests: [unique, not_null]
+
+  - name: dq_grid_missing_hours
+    description: Hours inside the covered range with no demand value (data-quality monitor).

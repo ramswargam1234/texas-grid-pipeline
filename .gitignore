@@ -5,4 +5,8 @@ __pycache__/
 data/
 *.parquet
 .DS_Store
+transform/target/
+transform/logs/
+transform/.user.yml
+logs/
 .vscode/

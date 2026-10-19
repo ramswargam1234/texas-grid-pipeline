@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Partitioned Parquet files written by the Python ingestion layer (src/ingestion).
+    meta:
+      external_location: "read_parquet('{{ var(\"raw_dir\") }}/{name}/*/*/*.parquet', hive_partitioning = true)"
+    tables:
+      - name: eia_ercot_hourly
+        description: >
+          Hourly ERCOT data from the EIA API, one row per (hour, type).
+          Types: D = demand, DF = day-ahead demand forecast, NG = net generation. Values in MWh.
+      - name: weather_hourly
+        description: Hourly Open-Meteo weather for Dallas, Houston, Austin and San Antonio (UTC).
