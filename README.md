@@ -22,7 +22,7 @@ Open-Meteo (weather) ────┘   idempotent,         partitioned year/mont
 - [ ] **Phase 2: Storage.** Incremental sync of the Parquet lake to S3 (least-privilege IAM user); dbt can build straight from S3. *Code done and tested against mocked S3; live AWS deployment in progress.*
 - [x] **Phase 3: Transform.** dbt + DuckDB: staging, hourly fact table, weather-demand marts, data tests
 - [x] **Phase 4: Orchestrate.** Airflow 3 DAGs (daily incremental + manual backfill) in Docker Compose, with retries and an isolated pipeline virtualenv
-- [ ] **Phase 5: Serve.** Dashboard: demand vs. temperature, peak hours, forecast error
+- [x] **Phase 5: Serve.** Streamlit dashboard (demand vs. temperature, peak hours, Winter Storm Uri, forecast error), refreshed by Airflow
 
 ## Quickstart
 
@@ -51,6 +51,17 @@ python -m src.run_dbt --target cloud   # straight from S3
 python -m src.report
 ```
 
+## Dashboard
+
+Streamlit app in [`dashboard/app.py`](dashboard/app.py). It reads small CSV snapshots exported
+from the warehouse (`dashboard/snapshot/`), so the hosted version needs no database or credentials.
+
+```bash
+python -m src.export_dashboard                 # refresh snapshot (Airflow does this daily)
+pip install -r dashboard/requirements.txt
+streamlit run dashboard/app.py                 # http://localhost:8501
+```
+
 ## Orchestration (Airflow)
 
 ```bash
@@ -61,7 +72,7 @@ docker compose down              # stop
 
 | DAG | Schedule | Tasks |
 |---|---|---|
-| `texas_grid_daily` | 7:00 AM Central | `ingest_grid` + `ingest_weather` → `upload_to_s3` → `dbt_build` → `report` |
+| `texas_grid_daily` | 7:00 AM Central | `ingest_grid` + `ingest_weather` → `upload_to_s3` → `dbt_build` → `report` + `export_dashboard` |
 | `texas_grid_backfill` | manual (param: `start`) | backfill both sources → `upload_to_s3` → `dbt_build` |
 
 - Retries with exponential backoff on every task; one run at a time (`max_active_runs=1`).

@@ -1,8 +1,8 @@
 """Daily Texas grid + weather pipeline.
 
-    ingest_grid ──┐
-                  ├─► upload_to_s3 (skipped if S3 not configured) ─► dbt_build ─► report
-    ingest_weather┘
+    ingest_grid ──┐                                                            ┌─► report
+                  ├─► upload_to_s3 (skipped if S3 not configured) ─► dbt_build ─┤
+    ingest_weather┘                                                            └─► export_dashboard
 
 Each task shells out to the same CLI commands you run by hand, so the
 pipeline behaves identically in Airflow and in a terminal.
@@ -77,7 +77,13 @@ with DAG(
         cwd=PROJECT_DIR,
     )
 
-    [ingest_grid, ingest_weather] >> upload_to_s3 >> dbt_build >> report
+    export_dashboard = BashOperator(
+        task_id="export_dashboard",
+        bash_command=f"{PY} -m src.export_dashboard",
+        cwd=PROJECT_DIR,
+    )
+
+    [ingest_grid, ingest_weather] >> upload_to_s3 >> dbt_build >> [report, export_dashboard]
 
 
 with DAG(

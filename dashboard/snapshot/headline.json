@@ -1,0 +1,14 @@
+{
+  "peak_mwh": 91075.0,
+  "peak_time_local": "2026-07-22T18:00:00",
+  "peak_avg_temp_f": 97.475,
+  "hours": 50832,
+  "first_date": "2020-12-31",
+  "last_date": "2026-10-19",
+  "rows_modeled": 355057,
+  "heat_slope_mwh_per_f": 1388.8890775942457,
+  "hot_vs_mild_ratio": 1.7622185283593783,
+  "forecast_mape_pct": 2.471814131380069,
+  "missing_hours": 4,
+  "exported_at_utc": "2026-10-19T22:57:02+00:00"
+}
