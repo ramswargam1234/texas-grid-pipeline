@@ -1,5 +1,7 @@
 # Texas Grid & Weather Data Pipeline
 
+**Live dashboard:** https://texas-grid-ram.streamlit.app
+
 An end-to-end data pipeline that joins **hourly Texas power grid (ERCOT) demand** with **hourly weather for Dallas, Houston, Austin and San Antonio** to answer:
 
 - How much does temperature drive Texas electricity demand?
