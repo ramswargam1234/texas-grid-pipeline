@@ -28,4 +28,9 @@ CITIES = {
     "san_antonio": (29.4241, -98.4936),
 }
 
+# ---- AWS S3 (Phase 2) ----
+# Credentials come from AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY in .env (read by boto3 and dbt).
+S3_BUCKET = os.getenv("S3_BUCKET", "")
+AWS_REGION = os.getenv("AWS_REGION", "us-east-2")
+
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "90"))

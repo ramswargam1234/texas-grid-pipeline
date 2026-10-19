@@ -1,0 +1,8 @@
+.venv/
+data/
+.git/
+transform/target/
+transform/logs/
+**/__pycache__/
+.pytest_cache/
+.env

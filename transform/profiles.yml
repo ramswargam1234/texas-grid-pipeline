@@ -1,7 +1,21 @@
 texas_grid:
   target: dev
   outputs:
+    # Reads raw Parquet from the local lake (data/raw).
     dev:
       type: duckdb
       path: ../data/warehouse.duckdb
       threads: 4
+
+    # Reads raw Parquet straight from S3 (run via: python -m src.run_dbt --target cloud).
+    cloud:
+      type: duckdb
+      path: ../data/warehouse.duckdb
+      threads: 4
+      extensions:
+        - httpfs
+      secrets:
+        - type: s3
+          key_id: "{{ env_var('AWS_ACCESS_KEY_ID', '') }}"
+          secret: "{{ env_var('AWS_SECRET_ACCESS_KEY', '') }}"
+          region: "{{ env_var('AWS_REGION', 'us-east-2') }}"

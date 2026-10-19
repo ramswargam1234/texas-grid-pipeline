@@ -1,0 +1,26 @@
+# Local Airflow for the Texas grid pipeline.
+#   docker compose up -d --build     -> UI at http://localhost:8080
+#   docker compose down              -> stop
+services:
+  airflow:
+    build:
+      context: .
+      dockerfile: orchestration/Dockerfile
+    command: standalone          # scheduler + API server + DAG processor in one container
+    ports:
+      - "8080:8080"
+    env_file: .env               # EIA key, AWS keys, S3 bucket
+    environment:
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/project/orchestration/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: America/Chicago
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"   # local dev only: no login screen
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/db/airflow.db
+      DATA_DIR: /opt/project/data
+    volumes:
+      - .:/opt/project           # live code + data from your laptop
+      - airflow-db:/opt/airflow/db
+    restart: unless-stopped
+
+volumes:
+  airflow-db:

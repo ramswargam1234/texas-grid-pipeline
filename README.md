@@ -19,9 +19,9 @@ Open-Meteo (weather) ────┘   idempotent,         partitioned year/mont
 ## Roadmap
 
 - [x] **Phase 1: Ingestion.** EIA + Open-Meteo loaders, pagination, monthly idempotent writes, unit tests
-- [ ] **Phase 2: Storage.** Raw Parquet to S3
+- [x] **Phase 2: Storage.** Incremental sync of the Parquet lake to S3 (least-privilege IAM user); dbt can build straight from S3
 - [x] **Phase 3: Transform.** dbt + DuckDB: staging, hourly fact table, weather-demand marts, data tests
-- [ ] **Phase 4: Orchestrate.** Airflow DAG (daily incremental + backfill) in Docker Compose
+- [x] **Phase 4: Orchestrate.** Airflow 3 DAGs (daily incremental + manual backfill) in Docker Compose, with retries and an isolated pipeline virtualenv
 - [ ] **Phase 5: Serve.** Dashboard: demand vs. temperature, peak hours, forecast error
 
 ## Quickstart
@@ -40,12 +40,41 @@ python -m src.ingestion.weather    --start 2021-01-01
 python -m src.ingestion.eia_demand --days 7
 python -m src.ingestion.weather    --days 14
 
+# Upload new/changed files to S3
+python -m src.storage.s3_sync
+
 # Transform + test (builds data/warehouse.duckdb)
-cd transform && dbt build --profiles-dir . && cd ..
+python -m src.run_dbt                  # from the local lake
+python -m src.run_dbt --target cloud   # straight from S3
 
 # Headline findings
 python -m src.report
 ```
+
+## Orchestration (Airflow)
+
+```bash
+docker compose up -d --build     # first build takes a few minutes
+open http://localhost:8080       # Airflow UI
+docker compose down              # stop
+```
+
+| DAG | Schedule | Tasks |
+|---|---|---|
+| `texas_grid_daily` | 7:00 AM Central | `ingest_grid` + `ingest_weather` → `upload_to_s3` → `dbt_build` → `report` |
+| `texas_grid_backfill` | manual (param: `start`) | backfill both sources → `upload_to_s3` → `dbt_build` |
+
+- Retries with exponential backoff on every task; one run at a time (`max_active_runs=1`).
+- `upload_to_s3` **skips** (doesn't fail) when `S3_BUCKET` isn't set; `dbt_build` uses `trigger_rule="none_failed"` so it still runs.
+- Pipeline code runs in its own virtualenv inside the image, so dbt and Airflow dependencies never conflict.
+- Tasks call the same CLI commands as the Quickstart, so local and scheduled runs behave identically.
+
+## AWS setup
+
+- **S3 bucket** (private, encrypted) holds the raw lake under `raw/<dataset>/year=YYYY/month=MM/`.
+- **IAM user** with a least-privilege policy ([`infra/iam_policy.json`](infra/iam_policy.json)): list the one bucket, read/write its objects, nothing else. No delete rights.
+- **Sync is incremental:** a file is uploaded only if its MD5 differs from the S3 ETag, so daily runs upload just the current month.
+- Credentials live only in `.env` (git-ignored).
 
 ## dbt models
 
