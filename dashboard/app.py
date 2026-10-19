@@ -63,6 +63,11 @@ def style(fig: go.Figure, height: int = 340, y_title: str = "", x_title: str = "
     return fig
 
 
+def chart(fig, **kw):
+    """Render a Plotly figure without the floating toolbar."""
+    st.plotly_chart(fig, config={"displayModeBar": False}, **kw)
+
+
 data = load()
 h = data["headline"]
 daily = data["daily"]
@@ -107,7 +112,7 @@ fig = px.line(view, x="date_local", y="peak_demand_mwh",
 fig.update_traces(line=dict(color=BLUE, width=2),
                   hovertemplate="<b>%{y:,.0f} MWh</b> peak at %{customdata[1]}:00<br>"
                                 "High temp %{customdata[0]:.0f}°F<extra></extra>")
-st.plotly_chart(style(fig, y_title="MWh"), use_container_width=True)
+chart(style(fig, y_title="MWh"), width="stretch")
 st.caption("Summer peaks dominate: air-conditioning load drives the highest demand of the year.")
 
 # ---------- 2 & 3 side by side ----------
@@ -121,8 +126,8 @@ with left:
                       hovertemplate="<b>%{x}–%{x}+5°F</b><br>Avg %{y:,.0f} MWh<br>"
                                     "Peak %{customdata[1]:,.0f} MWh<br>%{customdata[0]:,} hours<extra></extra>")
     fig.update_layout(bargap=0.15)
-    st.plotly_chart(style(fig, y_title="Avg hourly demand (MWh)", x_title="Average Texas temperature (°F)"),
-                    use_container_width=True)
+    chart(style(fig, y_title="Avg hourly demand (MWh)", x_title="Average Texas temperature (°F)"),
+                    width="stretch")
     st.caption("A U-shaped curve: demand is lowest around 60–70°F and climbs for both heating and cooling.")
 
 with right:
@@ -136,7 +141,7 @@ with right:
     fig.update_yaxes(autorange="reversed")
     fig = style(fig, x_title="Hour of day (Central)")
     fig.update_layout(hovermode="closest")
-    st.plotly_chart(fig, use_container_width=True)
+    chart(fig, width="stretch")
     st.caption("Late-afternoon summer hours are the grid's most stressful window.")
 
 # ---------- 4. Winter Storm Uri ----------
@@ -161,14 +166,14 @@ else:
                         hovertemplate="Actual %{y:,.0f} MWh<extra></extra>")
         fig = style(fig, y_title="MWh")
         fig.update_layout(showlegend=True, legend=dict(orientation="h", y=1.08, x=0))
-        st.plotly_chart(fig, use_container_width=True)
+        chart(fig, width="stretch")
     with b:
         fig = px.line(fz, x="period_local", y="avg_temp_f")
         fig.update_traces(line=dict(color=BLUE, width=2),
                           hovertemplate="%{y:.0f}°F avg across 4 cities<extra></extra>")
         fig.add_hline(y=32, line=dict(color=MUTED, dash="dot", width=1),
                       annotation_text="32°F", annotation_font_color=MUTED)
-        st.plotly_chart(style(fig, y_title="Avg Texas temperature (°F)"), use_container_width=True)
+        chart(style(fig, y_title="Avg Texas temperature (°F)"), width="stretch")
 
 # ---------- 5. forecast accuracy + data quality ----------
 left, right = st.columns(2)
@@ -178,7 +183,8 @@ with left:
     fig = px.line(fc, x="month", y="mape_pct", markers=True)
     fig.update_traces(line=dict(color=BLUE, width=2), marker=dict(size=8),
                       hovertemplate="<b>%{x|%b %Y}</b><br>%{y:.2f}% error<extra></extra>")
-    st.plotly_chart(style(fig, height=280, y_title="Mean abs. % error"), use_container_width=True)
+    chart(style(fig, height=280, y_title="Mean abs. % error"), width="stretch")
+    st.caption("The February 2021 spike is Winter Storm Uri, when blackouts pushed actual demand far below forecast.")
 
 with right:
     st.subheader("Data quality")
@@ -192,10 +198,10 @@ with right:
     if not miss.empty:
         with st.expander("Missing hours by month"):
             st.dataframe(miss.assign(month=miss["month"].dt.strftime("%b %Y")),
-                         hide_index=True, use_container_width=True)
+                         hide_index=True, width="stretch")
 
 with st.expander("View daily data as a table"):
-    st.dataframe(view.sort_values("date_local", ascending=False), hide_index=True, use_container_width=True)
+    st.dataframe(view.sort_values("date_local", ascending=False), hide_index=True, width="stretch")
 
 st.caption("Data: U.S. Energy Information Administration (EIA) Open Data · Open-Meteo Historical Weather API. "
            "Demand values are hourly ERCOT load in MWh; times are US Central.")
