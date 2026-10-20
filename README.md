@@ -30,6 +30,11 @@ Open-Meteo (weather) ────┘   idempotent,         partitioned year/mont
 - [x] **Phase 4: Orchestrate.** Airflow 3 DAGs (daily incremental + manual backfill) in Docker Compose, with retries and an isolated pipeline virtualenv
 - [x] **Phase 5: Serve.** Streamlit dashboard (demand vs. temperature, peak hours, Winter Storm Uri, forecast error), refreshed by Airflow
 
+## Design decisions
+
+The reasoning behind the main choices (warehouse, storage layout, orchestration, testing, security and the
+Uri method), including trade-offs and known weaknesses, is in [`docs/adr`](docs/adr/README.md).
+
 ## Quickstart
 
 ```bash
