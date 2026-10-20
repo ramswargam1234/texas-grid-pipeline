@@ -31,7 +31,7 @@ st.set_page_config(page_title="Texas Grid & Weather", page_icon="⚡", layout="w
 
 
 @st.cache_data
-def load():
+def load(snapshot_version: float):
     def csv(name, **kw):
         return pd.read_csv(SNAPSHOT / f"{name}.csv", **kw)
 
@@ -68,7 +68,7 @@ def chart(fig, **kw):
     st.plotly_chart(fig, config={"displayModeBar": False}, **kw)
 
 
-data = load()
+data = load((SNAPSHOT / "headline.json").stat().st_mtime)
 h = data["headline"]
 daily = data["daily"]
 # Drop partial days (first/last day of the range) so peaks aren't understated.
