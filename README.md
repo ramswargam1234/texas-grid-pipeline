@@ -290,7 +290,13 @@ python -m src.forecast                   # train + predict (add --force to rerun
 python -m src.run_dbt --stage forecast   # stage 2: fct_forecast_hourly, agg_forecast_accuracy_monthly + tests
 ```
 
-`make build` runs all three. Tests check that lags only look back, that each month trains only on earlier months, and that
+`make build` runs all three.
+
+Two model versions are kept (`--model v1|v2`). **v1** predicted demand in MWh from the 4-metro average temperature
+and scored 4.67% MAPE vs ERCOT's 2.38% over 48,539 hours: tree models can't predict above anything they were
+trained on, and Texas demand grows every year, so it kept under-forecasting. **v2** (default) predicts demand
+*relative to its recent level* (the mean of the 14 days ending 2 days earlier) and sees all 9 cities' temperatures;
+on synthetic demand growing 5% a year it cut the error from 4.04% to 1.72%. Tests check that lags only look back, that each month trains only on earlier months, and that
 load-shed hours are excluded. **Caveat:** this version uses the *observed* temperature of the forecast day, a perfect
 weather forecast, while ERCOT had to forecast the weather too. The next roadmap item scores the model with real day-ahead
 weather forecasts and splits the error into weather-forecast error vs model error.

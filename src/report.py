@@ -113,12 +113,13 @@ def main() -> None:
     if has_fc:
         fc = con.sql("""select count(*), 100 * avg(model_abs_pct_error), 100 * avg(eia_abs_pct_error),
                                100 * avg(model_abs_pct_error) filter (where hour_local between 15 and 19),
-                               100 * avg(eia_abs_pct_error)   filter (where hour_local between 15 and 19)
+                               100 * avg(eia_abs_pct_error)   filter (where hour_local between 15 and 19),
+                               any_value(model_version)
                         from fct_forecast_hourly
                         where actual_mwh is not null and eia_forecast_mwh is not null
                           and model_forecast_mwh is not null and not is_load_shed""").fetchone()
         if fc and fc[0]:
-            print(f"Our demand model   : {fc[1]:.2f}% MAPE vs ERCOT {fc[2]:.2f}% over {fc[0]:,} backtest hours; "
+            print(f"Our demand model   : {fc[5]} {fc[1]:.2f}% MAPE vs ERCOT {fc[2]:.2f}% over {fc[0]:,} backtest hours; "
                   f"3-7 PM peak {fc[3]:.2f}% vs {fc[4]:.2f}% (uses observed weather: best case until t2r)")
     print(f"Missing grid hours : {missing:,} (see dq_grid_missing_hours)")
     print()

@@ -39,8 +39,10 @@ def test_backtest_trains_only_on_earlier_months(monkeypatch):
             return np.zeros(len(X))
 
     monkeypatch.setattr(dm, "new_model", Spy)
-    preds = dm.backtest_month(df, month)
+    preds = dm.backtest_month(df, month, "v1")
     assert seen["n"] == (df["month_start"] < month).sum()      # every earlier hour, nothing later
+    dm.backtest_month(df, month, "v2")                          # v2 also drops hours with no level yet
+    assert seen["n"] <= (df["month_start"] < month).sum()
     assert preds["trained_through"].iloc[0] < pd.Timestamp("2024-06-01", tz="UTC")
     assert len(preds) == (df["month_start"] == month).sum()
 
@@ -53,5 +55,13 @@ def test_load_shed_hours_are_not_training_data(monkeypatch):
     monkeypatch.setattr(dm, "new_model", lambda: type("M", (), {
         "fit": lambda self, X, y: seen.setdefault("n", len(X)) and self,
         "predict": lambda self, X: np.zeros(len(X))})())
-    dm.backtest_month(df, pd.Timestamp("2024-05-01"))
+    dm.backtest_month(df, pd.Timestamp("2024-05-01"), "v1")
     assert seen["n"] == (df["month_start"] < pd.Timestamp("2024-05-01")).sum() - 72
+
+
+def test_v2_level_uses_only_demand_from_2_days_back():
+    df = dm.make_features(fake_hours(30))
+    i = 24 * 25
+    window = df["demand_mwh"].iloc[i - dm.LEVEL_GAP - dm.LEVEL_HOURS + 1: i - dm.LEVEL_GAP + 1]
+    assert abs(df["level_mwh"].iloc[i] - window.mean()) < 1e-6
+    assert df["level_mwh"].iloc[: dm.LEVEL_GAP + dm.LEVEL_HOURS // 2 - 1].isna().all()
