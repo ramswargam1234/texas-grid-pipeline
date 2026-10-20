@@ -32,3 +32,25 @@ models:
 
   - name: dq_grid_missing_hours
     description: Hours inside the covered range with no demand value (data-quality monitor).
+
+  - name: fct_uri_unserved_hourly
+    description: >
+      Winter Storm Uri (Feb 8-21, 2021), hourly. Estimates demand that went unserved during ERCOT's
+      rolling blackouts two ways: the day-ahead forecast gap, and a weather model (one temperature slope
+      plus a baseline per hour of day, trained on other winters' cold hours).
+    columns:
+      - name: period_utc
+        data_tests: [unique, not_null]
+      - name: weather_expected_mwh
+        description: Demand the weather model expects at that hour's temperature.
+      - name: is_load_shed
+        description: True for hours inside ERCOT's load-shed orders (Feb 15 01:00 to Feb 18 01:00 CT).
+      - name: unserved_vs_forecast_mwh
+        description: max(forecast - actual, 0) during load shed.
+      - name: unserved_vs_weather_mwh
+        description: max(weather_expected - actual, 0) during load shed.
+      - name: is_extrapolated
+        description: Temperature colder than any training hour; the weather estimate is less certain here.
+
+  - name: agg_uri_summary
+    description: One-row summary of estimated unserved energy (GWh) and peak shortfall during Uri.

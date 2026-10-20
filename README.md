@@ -103,8 +103,23 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `agg_grid_daily` | 1 row / day | Daily peak demand, peak hour, weather, forecast accuracy |
 | `agg_demand_by_temperature` | 1 row / 5°F band | How demand rises with heat and cold |
 | `dq_grid_missing_hours` | 1 row / missing hour | Gaps in the EIA feed |
+| `fct_uri_unserved_hourly` | 1 row / hour, Feb 8–21 2021 | Forecast, weather-model and actual demand during Winter Storm Uri |
+| `agg_uri_summary` | 1 row | Estimated unserved energy (GWh) during the blackouts |
 
-**Data tests (19):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**.
+**Data tests (22):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, and a completeness check on the 72 Uri load-shed hours.
+
+## Finding: demand that went unserved during Winter Storm Uri
+
+ERCOT ordered rolling blackouts from **1:20 AM Feb 15 to 12:42 AM Feb 18, 2021**. During those hours the EIA data records
+the power that was *delivered*, not the power people *needed*, so a naive reading says demand fell during the coldest
+days on record. `fct_uri_unserved_hourly` estimates the missing demand two independent ways:
+
+1. **Forecast gap:** ERCOT's day-ahead demand forecast minus actual demand.
+2. **Weather model:** one temperature slope plus a baseline for each hour of day, fit on cold winter hours (Dec–Feb, below 50°F)
+   from every other winter, then applied to Uri's temperatures. Hours colder than any training hour are flagged as extrapolated.
+
+**Result:** an estimated **~1,340 GWh** of demand went unserved over the 72 load-shed hours (forecast gap; the weather model gives ~1,900 GWh as an upper bound). The forecast peaked at **76,783 MW** during load shed, matching ERCOT's own ~76.8 GW estimate. The largest hourly gap, **28,885 MW**, exceeds the 20 GW ERCOT ordered shed, suggesting delivered power also fell from local outages and industrial cutbacks. For reference, ERCOT reported shedding up to 20 GW and estimated peak demand
+of about 76.8 GW without load shed ([S&P Global](https://www.spglobal.com/commodity-insights/en/news-research/latest-news/electric-power/022421-ercot-lost-almost-half-of-generation-capacity-in-storm-causing-20-gw-load-shed)).
 
 ## Data layout
 

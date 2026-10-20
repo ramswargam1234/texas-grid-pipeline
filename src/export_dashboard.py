@@ -57,9 +57,8 @@ QUERIES = {
     """,
     # Hourly detail for the February 2021 winter storm (Uri).
     "freeze_2021": """
-        select period_local, demand_mwh, forecast_mwh, avg_temp_f
-        from fct_grid_hourly
-        where period_local between '2021-02-08' and '2021-02-22'
+        select period_local, demand_mwh, forecast_mwh, weather_expected_mwh, avg_temp_f, is_load_shed
+        from fct_uri_unserved_hourly
         order by period_local
     """,
     # Data-quality: missing demand hours per month.
@@ -87,6 +86,8 @@ def headline(con) -> dict:
                    from fct_grid_hourly""")[0]
     mape = one("select avg(abs_pct_error) * 100 from fct_grid_hourly")[0]
     missing = one("select count(*) from dq_grid_missing_hours")[0]
+    uri_df = con.sql("select * from agg_uri_summary").df()
+    uri = {k: (None if v != v else v) for k, v in uri_df.iloc[0].to_dict().items()} if len(uri_df) else {}
     return {
         "peak_mwh": peak_mwh,
         "peak_time_local": peak_ts.isoformat() if peak_ts else None,
@@ -99,6 +100,7 @@ def headline(con) -> dict:
         "hot_vs_mild_ratio": ratio,
         "forecast_mape_pct": mape,
         "missing_hours": missing,
+        "uri": uri,
         "exported_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
 

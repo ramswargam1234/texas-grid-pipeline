@@ -12,6 +12,13 @@ clean-targets: ["target", "dbt_packages"]
 vars:
   # Raw Parquet lake written by src/ingestion (relative to this folder).
   raw_dir: "../data/raw"
+  # Winter Storm Uri: ERCOT load-shed orders ran 1:20 AM Feb 15 to 12:42 AM Feb 18, 2021 (Central).
+  # Hour-starting timestamps in this window are counted as load-shed hours (72 hours).
+  uri_shed_start: "2021-02-15 01:00:00"
+  uri_shed_end: "2021-02-18 01:00:00"      # exclusive
+  # Wider window shown on the dashboard, and excluded from the weather model's training data.
+  uri_window_start: "2021-02-08 00:00:00"
+  uri_window_end: "2021-02-22 00:00:00"    # exclusive
 
 models:
   texas_grid:

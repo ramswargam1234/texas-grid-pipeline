@@ -61,6 +61,12 @@ def main() -> None:
     print(f"Most common peak   : {peak_hour}:00 Central")
     print(f"Day-ahead forecast : {fmt(mape * 100 if mape else None, '.2f')}% mean absolute % error")
     print(f"Feb 2021 freeze    : low {fmt(freeze[0], '.0f')}°F, peak demand {fmt(freeze[1])} MWh (Feb 13-18)")
+    uri = con.sql("select unserved_gwh_forecast, unserved_gwh_weather, max_hourly_gap_forecast_mwh, "
+                  "extrapolated_hours, shed_hours from agg_uri_summary").fetchone()
+    print(f"Uri unserved energy: ~{fmt(uri[0])} GWh (forecast gap) / ~{fmt(uri[1])} GWh (weather model) "
+          f"over {uri[4]} load-shed hours")
+    print(f"Uri max shortfall  : {fmt(uri[2])} MWh in one hour (forecast gap); "
+          f"{uri[3]} hours colder than any training hour")
     print(f"Missing grid hours : {missing:,} (see dq_grid_missing_hours)")
     print()
 

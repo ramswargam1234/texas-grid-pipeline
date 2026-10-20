@@ -147,25 +147,56 @@ with right:
 # ---------- 4. Winter Storm Uri ----------
 st.subheader("February 2021: Winter Storm Uri")
 fz = data["freeze"]
-if fz.empty:
+uri = h.get("uri") or {}
+
+
+def num(v, spec=",.0f", suffix=""):
+    return "n/a" if v is None or v != v else f"{v:{spec}}{suffix}"
+
+
+if fz.empty or not uri:
     st.info("No data for February 2021 in this snapshot.")
 else:
     st.markdown(
-        "Temperatures across Texas fell below freezing for days. ERCOT ordered rolling blackouts, "
-        "so measured demand reflects the power that could be delivered, not the power people needed. "
-        "Compare the day-ahead forecast (orange) with actual demand (blue)."
+        "ERCOT ordered rolling blackouts from **1:20 AM Feb 15 to 12:42 AM Feb 18, 2021**. During those hours, "
+        "measured demand shows the power the grid could deliver, not the power people needed. "
+        "This estimates the gap two ways: ERCOT's own **day-ahead forecast**, and a **weather model** "
+        "trained on other winters' cold hours."
     )
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Unserved energy (forecast gap)", num(uri.get("unserved_gwh_forecast"), suffix=" GWh"),
+              help="Sum over load-shed hours of max(day-ahead forecast − actual demand, 0). 1 GWh = 1,000 MWh.")
+    m1.caption("headline estimate")
+    m2.metric("Unserved energy (weather model)", num(uri.get("unserved_gwh_weather"), suffix=" GWh"),
+              help="Sum over load-shed hours of max(weather-expected demand − actual, 0). The storm was colder "
+                   "than most training hours, so this extrapolates and is less certain.")
+    m2.caption("upper bound: extrapolates past the coldest training hours")
+    m3.metric("Largest hourly shortfall", num(uri.get("max_hourly_gap_forecast_mwh"), suffix=" MW"),
+              help="Biggest single-hour gap between forecast and actual demand during load shed.")
+    m3.caption("above the 20,000 MW ERCOT ordered shed")
+    m4.metric("Hours of load shed", num(uri.get("shed_hours"), ",.0f"))
+    m4.caption(f"coldest hour {num(uri.get('min_temp_f'), '.0f', '°F')} (4-city avg)")
+
     a, b = st.columns(2)
+    shed = fz[fz["is_load_shed"]]
     with a:
         fig = go.Figure()
+        if not shed.empty:
+            fig.add_vrect(x0=shed["period_local"].min(), x1=shed["period_local"].max(),
+                          fillcolor=MUTED, opacity=0.12, line_width=0,
+                          annotation_text="Load shed", annotation_position="top left",
+                          annotation_font_color=MUTED)
         fig.add_scatter(x=fz["period_local"], y=fz["forecast_mwh"], name="Day-ahead forecast",
                         line=dict(color=ORANGE, width=2),
                         hovertemplate="Forecast %{y:,.0f} MWh<extra></extra>")
+        fig.add_scatter(x=fz["period_local"], y=fz["weather_expected_mwh"], name="Weather model",
+                        line=dict(color=MUTED, width=2, dash="dot"),
+                        hovertemplate="Weather model %{y:,.0f} MWh<extra></extra>")
         fig.add_scatter(x=fz["period_local"], y=fz["demand_mwh"], name="Actual demand",
                         line=dict(color=BLUE, width=2),
                         hovertemplate="Actual %{y:,.0f} MWh<extra></extra>")
         fig = style(fig, y_title="MWh")
-        fig.update_layout(showlegend=True, legend=dict(orientation="h", y=1.08, x=0))
+        fig.update_layout(showlegend=True, legend=dict(orientation="h", y=1.1, x=0))
         chart(fig, width="stretch")
     with b:
         fig = px.line(fz, x="period_local", y="avg_temp_f")
@@ -174,6 +205,19 @@ else:
         fig.add_hline(y=32, line=dict(color=MUTED, dash="dot", width=1),
                       annotation_text="32°F", annotation_font_color=MUTED)
         chart(style(fig, y_title="Avg Texas temperature (°F)"), width="stretch")
+    st.markdown(
+        f"**Validation:** the day-ahead forecast peaked at **{num(uri.get('peak_forecast_mwh'))} MW** during load shed, "
+        "matching ERCOT's own estimate of about 76,800 MW of demand without blackouts. "
+        f"The largest hourly gap (**{num(uri.get('max_hourly_gap_forecast_mwh'))} MW**) is above the 20,000 MW ERCOT ordered shed, "
+        "so delivered power likely also fell from local outages and industrial cutbacks. "
+        f"The weather model peaks at {num(uri.get('peak_weather_expected_mwh'))} MW, overshooting ERCOT's estimate, "
+        "so treat it as an upper bound."
+    )
+    st.caption(
+        "For reference, ERCOT reported shedding up to 20 GW and estimated peak demand would have reached about "
+        "76.8 GW without load shed. The weather model fits one temperature slope plus a baseline for each hour "
+        "of day on cold winter hours (Dec–Feb, below 50°F), excluding Feb 8–21, 2021."
+    )
 
 # ---------- 5. forecast accuracy + data quality ----------
 left, right = st.columns(2)
@@ -191,7 +235,7 @@ with right:
     st.markdown(
         f"- **{h['rows_modeled']:,}** rows modeled across **{h['hours']:,}** hours\n"
         f"- **{h['missing_hours']:,}** hours missing from the EIA feed, caught by a dbt test\n"
-        f"- 19 automated dbt tests run on every build\n"
+        f"- 22 automated dbt tests run on every build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
     miss = data["missing"]
