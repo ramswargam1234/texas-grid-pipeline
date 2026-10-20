@@ -6,7 +6,8 @@ resource "aws_iam_user" "pipeline" {
   name = var.pipeline_user_name
 }
 
-# Least privilege: list, read and write objects under raw/ in this one bucket. No delete.
+# Least privilege: list, read and write objects under raw/ (the lake) and state/ (the dbt warehouse
+# file that carries snapshot history between cloud runs) in this one bucket. No delete.
 data "aws_iam_policy_document" "pipeline_s3" {
   statement {
     sid       = "ListLakePrefix"
@@ -17,7 +18,7 @@ data "aws_iam_policy_document" "pipeline_s3" {
     condition {
       test     = "StringLike"
       variable = "s3:prefix"
-      values   = ["raw/", "raw/*"]
+      values   = ["raw/", "raw/*", "state/", "state/*"]
     }
   }
 
@@ -32,7 +33,10 @@ data "aws_iam_policy_document" "pipeline_s3" {
     sid       = "ReadWriteLakeObjects"
     effect    = "Allow"
     actions   = ["s3:GetObject", "s3:PutObject"]
-    resources = ["${aws_s3_bucket.lake.arn}/raw/*"]
+    resources = [
+      "${aws_s3_bucket.lake.arn}/raw/*",
+      "${aws_s3_bucket.lake.arn}/state/*",
+    ]
   }
 }
 

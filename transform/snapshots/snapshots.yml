@@ -1,0 +1,12 @@
+snapshots:
+  - name: snp_eia_daily_totals
+    relation: ref('int_eia__daily_totals')
+    description: >
+      Type-2 history of daily EIA totals. A new version is recorded whenever EIA changes a day's total
+      or hour count after first publishing it. dbt_valid_to is null for the current version.
+    config:
+      schema: snapshots
+      unique_key: snapshot_key
+      strategy: check
+      check_cols: [total_mwh, hours_reported]
+      hard_deletes: ignore

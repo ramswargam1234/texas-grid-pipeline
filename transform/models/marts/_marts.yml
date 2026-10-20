@@ -113,3 +113,8 @@ models:
               arguments:
                 to: ref('dim_series')
                 field: series_key
+
+  - name: rpt_eia_revisions
+    description: >
+      One row per detected EIA revision: a day/series whose published total or hour count changed after
+      we first loaded it. Built from the snp_eia_daily_totals snapshot.

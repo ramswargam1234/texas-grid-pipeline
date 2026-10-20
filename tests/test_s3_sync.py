@@ -57,3 +57,15 @@ def test_download_pulls_missing_and_changed_files(lake, s3, tmp_path):
     assert download(target, BUCKET, s3=s3) == {"downloaded": 0, "skipped": 2}
     got = pd.read_parquet(target / "eia_ercot_hourly" / "year=2024" / "month=01" / "data.parquet")
     assert got["x"].tolist() == [1, 2, 1]
+
+
+def test_state_round_trip(s3, tmp_path, monkeypatch):
+    from src.ingestion import config
+    from src.storage.s3_sync import download_state, upload_state
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    assert download_state(BUCKET, s3=s3) is False  # first run: nothing saved yet
+    (tmp_path / "warehouse.duckdb").write_bytes(b"snapshot history")
+    upload_state(BUCKET, s3=s3)
+    (tmp_path / "warehouse.duckdb").unlink()
+    assert download_state(BUCKET, s3=s3) is True
+    assert (tmp_path / "warehouse.duckdb").read_bytes() == b"snapshot history"

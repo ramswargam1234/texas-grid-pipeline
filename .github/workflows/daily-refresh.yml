@@ -54,8 +54,14 @@ jobs:
       - name: Push new and changed files to S3
         run: python -m src.storage.s3_sync
 
-      - name: dbt build (models + data tests)
+      - name: Restore warehouse (snapshot history) from S3
+        run: python -m src.storage.s3_sync --state-download
+
+      - name: dbt build (models, snapshots, unit + data tests)
         run: python -m src.run_dbt
+
+      - name: Save warehouse to S3
+        run: python -m src.storage.s3_sync --state-upload
 
       - name: Headline findings
         run: python -m src.report

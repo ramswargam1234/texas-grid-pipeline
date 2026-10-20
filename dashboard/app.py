@@ -273,7 +273,7 @@ with right:
     st.markdown(
         f"- **{h['rows_modeled']:,}** rows modeled across **{h['hours']:,}** hours\n"
         f"- **{h['missing_hours']:,}** hours missing from the EIA feed, caught by a dbt test\n"
-        f"- 51 automated dbt tests run on every build\n"
+        f"- 51 data tests and 3 unit tests run on every dbt build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
     miss = data["missing"]

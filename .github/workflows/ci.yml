@@ -33,5 +33,5 @@ jobs:
       - name: Build synthetic data lake
         run: python -m src.sample_data
 
-      - name: dbt build (models + data tests)
+      - name: dbt build (models, snapshots, unit + data tests)
         run: python -m src.run_dbt

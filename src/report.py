@@ -73,6 +73,9 @@ def main() -> None:
         top, bottom = zones[0], zones[-1]
         print(f"Zones              : {len(zones)}; most heat-sensitive {top[0]} (+{top[2]:.2f}%/°F), "
               f"least {bottom[0]} (+{bottom[2]:.2f}%/°F)")
+    revisions = con.sql("select count(*), coalesce(sum(abs(change_mwh)), 0) from rpt_eia_revisions").fetchone()
+    print(f"EIA revisions seen : {revisions[0]:,} day/series changes ({fmt(revisions[1])} MWh moved), "
+          "tracked by snp_eia_daily_totals")
     print(f"Missing grid hours : {missing:,} (see dq_grid_missing_hours)")
     print()
 

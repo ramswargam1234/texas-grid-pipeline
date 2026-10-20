@@ -1,0 +1,57 @@
+# dbt unit tests: check model logic on tiny hand-written inputs (no real data needed).
+unit_tests:
+  - name: uri_forecast_gap_counts_only_load_shed_hours
+    description: Unserved energy is forecast minus actual, floored at 0, and only inside the load-shed window.
+    model: fct_uri_unserved_hourly
+    overrides:
+      vars:
+        uri_shed_start: "2021-02-15 01:00:00"
+        uri_shed_end: "2021-02-15 03:00:00"
+        uri_window_start: "2021-02-15 00:00:00"
+        uri_window_end: "2021-02-15 04:00:00"
+    given:
+      - input: ref('fct_grid_hourly')
+        rows:
+          - {period_utc: "2021-02-15 06:00:00+00", period_local: "2021-02-15 00:00:00", hour_local: 0, month_local: 2, demand_mwh: 60000, forecast_mwh: 61000, avg_temp_f: 10}
+          - {period_utc: "2021-02-15 07:00:00+00", period_local: "2021-02-15 01:00:00", hour_local: 1, month_local: 2, demand_mwh: 45000, forecast_mwh: 70000, avg_temp_f: 9}
+          - {period_utc: "2021-02-15 08:00:00+00", period_local: "2021-02-15 02:00:00", hour_local: 2, month_local: 2, demand_mwh: 72000, forecast_mwh: 70000, avg_temp_f: 9}
+          - {period_utc: "2021-02-15 09:00:00+00", period_local: "2021-02-15 03:00:00", hour_local: 3, month_local: 2, demand_mwh: 40000, forecast_mwh: 69000, avg_temp_f: 8}
+    expect:
+      rows:
+        - {period_local: "2021-02-15 00:00:00", is_load_shed: false, unserved_vs_forecast_mwh: null}
+        - {period_local: "2021-02-15 01:00:00", is_load_shed: true,  unserved_vs_forecast_mwh: 25000}
+        - {period_local: "2021-02-15 02:00:00", is_load_shed: true,  unserved_vs_forecast_mwh: 0}
+        - {period_local: "2021-02-15 03:00:00", is_load_shed: false, unserved_vs_forecast_mwh: null}
+
+  - name: dim_date_assigns_seasons_and_weekends
+    description: Season comes from the month; Saturday and Sunday are weekends.
+    model: dim_date
+    given:
+      - input: ref('int_grid__hourly_pivoted')
+        rows:
+          - {period_utc: "2024-01-06 18:00:00+00"}
+          - {period_utc: "2024-01-08 18:00:00+00"}
+    expect:
+      rows:
+        - {date_key: 20240106, season: Winter, day_name: Saturday, is_weekend: true}
+        - {date_key: 20240107, season: Winter, day_name: Sunday, is_weekend: true}
+        - {date_key: 20240108, season: Winter, day_name: Monday, is_weekend: false}
+
+  - name: zone_weather_averages_multi_city_zones
+    description: A zone with two reference cities (South Central) gets the average of both.
+    model: int_weather__zone_hourly
+    given:
+      - input: ref('stg_weather__hourly')
+        rows:
+          - {period_utc: "2024-07-01 20:00:00+00", city: austin, temp_f: 100, humidity_pct: 40}
+          - {period_utc: "2024-07-01 20:00:00+00", city: san_antonio, temp_f: 96, humidity_pct: 50}
+          - {period_utc: "2024-07-01 20:00:00+00", city: houston, temp_f: 94, humidity_pct: 70}
+      - input: ref('ercot_zone_cities')
+        rows:
+          - {zone_code: SCEN, zone_label: South Central, weather_city: austin}
+          - {zone_code: SCEN, zone_label: South Central, weather_city: san_antonio}
+          - {zone_code: COAS, zone_label: Coast, weather_city: houston}
+    expect:
+      rows:
+        - {zone_code: SCEN, zone_temp_f: 98, zone_humidity_pct: 45, cities_reporting: 2}
+        - {zone_code: COAS, zone_temp_f: 94, zone_humidity_pct: 70, cities_reporting: 1}

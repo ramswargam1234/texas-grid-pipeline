@@ -139,10 +139,21 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `agg_uri_summary` | 1 row | Estimated unserved energy (GWh) during the blackouts |
 | `fct_zone_hourly` | 1 row / hour / zone | Demand in each of ERCOT's 8 weather zones, joined to that zone's own weather |
 | `fct_grid_series_hourly` | 1 row / hour / series | Star-schema fact for the whole grid (demand, forecast, generation) |
+| `rpt_eia_revisions` | 1 row / detected revision | EIA days whose published totals changed after first load (from the snapshot) |
 | `dim_date`, `dim_zone`, `dim_series` | 1 row / date, zone, series | Conformed dimensions shared by the fact tables |
 | `agg_zone_profile` | 1 row / zone | Share of energy, peak, and heat sensitivity (MWh and % per °F above 75°F) |
 
 **Data tests (51):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, and a check that the 8 weather zones add up to ERCOT's total within 3%.
+
+## History and unit tests
+
+- **Snapshot `snp_eia_daily_totals`** (type-2, `check` strategy) stores every version of each day's EIA totals.
+  When EIA republishes a day with different numbers, `rpt_eia_revisions` shows the before and after values and
+  when the change was detected. The daily cloud job keeps the DuckDB warehouse in S3 (`state/warehouse.duckdb`),
+  restoring it before `dbt build` and saving it after, so snapshot history accumulates across runs.
+- **dbt unit tests** (`transform/models/unit_tests.yml`) check model logic on small hand-written inputs:
+  the Uri forecast-gap math and load-shed window, season and weekend flags in `dim_date`, and averaging of
+  multi-city weather zones.
 
 ## Star schema
 
