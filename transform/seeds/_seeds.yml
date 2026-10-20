@@ -24,3 +24,19 @@ seeds:
     columns:
       - name: series_code
         data_tests: [unique, not_null]
+
+  - name: ercot_fuel_types
+    description: EIA fuel type codes with plain-English names and groups (fossil, nuclear, renewable, storage).
+    config:
+      column_types:
+        fuel_code: varchar
+        is_renewable: boolean
+        is_carbon_free: boolean
+    columns:
+      - name: fuel_code
+        data_tests: [unique, not_null]
+      - name: fuel_group
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Fossil', 'Nuclear', 'Renewable', 'Storage', 'Other']

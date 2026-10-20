@@ -24,3 +24,9 @@ models:
     columns:
       - name: series_key
         data_tests: [unique, not_null]
+
+  - name: dim_fuel
+    description: Fuel types that generate on the ERCOT grid, with group and renewable / carbon-free flags.
+    columns:
+      - name: fuel_key
+        data_tests: [unique, not_null]

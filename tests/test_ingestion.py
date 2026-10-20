@@ -146,3 +146,25 @@ def test_eia_zones_parse_and_paginate(monkeypatch):
     assert df["demand_mwh"].sum() == 51000.0
     assert session.calls[0]["facets[parent][]"] == "ERCO"
     assert [c["offset"] for c in session.calls] == [0, 2]
+
+
+# ---------- EIA fuel mix ----------
+
+def test_eia_fuel_parse_and_paginate(monkeypatch):
+    from src.ingestion import eia_fuel
+    monkeypatch.setattr(config, "EIA_API_KEY", "test-key")
+
+    def frow(period, code, value):
+        return {"period": period, "respondent": "ERCO", "respondent-name": "ERCOT", "fueltype": code,
+                "type-name": code + " name", "value": value, "value-units": "megawatthours"}
+
+    page1 = {"response": {"total": "3", "data": [frow("2024-07-01T20", "WND", "15000"),
+                                                  frow("2024-07-01T20", "SUN", "18000")]}}
+    page2 = {"response": {"total": "4", "data": [frow("2024-07-01T20", "BAT", "-500"),
+                                                  frow("2024-07-01T20", "BAT", "-500")]}}  # duplicate
+    session = FakeSession([page1, page2])
+    df = eia_fuel.fetch_range(date(2024, 7, 1), date(2024, 7, 1), session=session)
+    assert sorted(df["fuel_code"]) == ["BAT", "SUN", "WND"]
+    assert df.loc[df.fuel_code == "BAT", "generation_mwh"].item() == -500.0  # charging stays negative
+    assert session.calls[0]["facets[respondent][]"] == "ERCO"
+    assert [c["offset"] for c in session.calls] == [0, 2]

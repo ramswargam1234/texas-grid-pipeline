@@ -25,6 +25,10 @@ ORANGE = "#eb6834"
 MUTED = "#8a8985"
 GRID = "#e9e8e4"
 SEQ_BLUE = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
+# Fuel colors follow the fuel (never its rank), in the palette's validated order; small fuels are gray.
+FUELS = ["Wind", "Natural gas", "Nuclear", "Solar", "Coal", "Other"]
+FUEL_COLORS = {"Wind": "#2a78d6", "Natural gas": "#eb6834", "Nuclear": "#1baf7a",
+               "Solar": "#eda100", "Coal": "#e87ba4", "Other": "#b5b4ae"}
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 st.set_page_config(page_title="Texas Grid & Weather", page_icon="⚡", layout="wide")
@@ -44,6 +48,10 @@ def load(snapshot_version: float):
         "freeze": csv("freeze_2021", parse_dates=["period_local"]),
         "missing": csv("missing_by_month", parse_dates=["month"]),
         "zones": csv("zones") if (SNAPSHOT / "zones.csv").exists() else pd.DataFrame(),
+        "fuel_monthly": (csv("fuel_monthly", parse_dates=["month"])
+                         if (SNAPSHOT / "fuel_monthly.csv").exists() else pd.DataFrame()),
+        "fuel_condition": (csv("fuel_by_condition")
+                           if (SNAPSHOT / "fuel_by_condition.csv").exists() else pd.DataFrame()),
     }
 
 
@@ -79,7 +87,7 @@ daily = daily[daily["hours_with_demand"] >= 20]
 st.title("⚡ Texas Grid & Weather")
 st.markdown(
     f"How weather drives electricity demand on the Texas grid (ERCOT). "
-    f"Hourly demand from the U.S. EIA joined with weather for Dallas, Houston, Austin and San Antonio "
+    f"Hourly demand and generation by fuel from the U.S. EIA, joined with weather for Dallas, Houston, Austin and San Antonio "
     f"(plus one city per ERCOT weather zone), "
     f"**{h['first_date']} → {h['last_date']}**. "
     f"Built with Python, AWS S3, dbt, DuckDB and Airflow. [Source code]({REPO_URL})"
@@ -257,6 +265,63 @@ if not zones.empty:
         chart(fig, width="stretch")
     st.caption("A dbt test checks every hour that the 8 zones add up to ERCOT's total (within 3%).")
 
+# ---------- 4c. fuel mix ----------
+fm, fc_ = data["fuel_monthly"], data["fuel_condition"]
+if not fm.empty:
+    st.subheader("Where Texas gets its power")
+    fs = h.get("fuel") or {}
+    if fs:
+        st.markdown(
+            f"Hourly generation by fuel from EIA. Renewables (mostly wind and solar) went from **{fs['renewable_first']:.0%}** of "
+            f"ERCOT's generation in {fs['first_year']} to **{fs['renewable_latest']:.0%}** in {fs['latest_year']}, "
+            f"while coal fell from {fs['coal_first']:.0%} to {fs['coal_latest']:.0%}. "
+            "When the grid is under stress, natural gas carries most of the load."
+        )
+    fl, fr = st.columns([3, 2])
+    with fl:
+        fig = go.Figure()
+        for fuel in FUELS:
+            d = fm[fm["fuel"] == fuel]
+            if d.empty:
+                continue
+            fig.add_trace(go.Scatter(
+                x=d["month"], y=d["share"], name=fuel, mode="lines", stackgroup="mix",
+                line=dict(width=0.5, color="#ffffff"), fillcolor=FUEL_COLORS[fuel],
+                customdata=d["generation_gwh"],
+                hovertemplate=f"{fuel}: %{{y:.1%}} (%{{customdata:,.0f}} GWh)<extra></extra>"))
+        fig = style(fig, height=360, y_title="Share of monthly generation")
+        fig.update_yaxes(tickformat=".0%", range=[0, 1])
+        fig.update_layout(showlegend=True, legend=dict(orientation="h", y=1.08, x=0, traceorder="normal"),
+                          margin=dict(t=40))
+        chart(fig, width="stretch")
+        st.caption("Monthly fuel mix. Petroleum, hydro, batteries and other small sources are grouped as Other.")
+    with fr:
+        if not fc_.empty:
+            order = ["All hours", "Top 5% demand hours", "Uri load shed"]
+            fig = go.Figure()
+            for fuel in FUELS:
+                d = fc_[fc_["fuel"] == fuel].set_index("condition").reindex(order)
+                fig.add_trace(go.Bar(
+                    y=order, x=d["share"], name=fuel, orientation="h",
+                    marker=dict(color=FUEL_COLORS[fuel], line=dict(color="#ffffff", width=2)),
+                    customdata=d["avg_mw"],
+                    hovertemplate=f"{fuel}: %{{x:.1%}} (avg %{{customdata:,.0f}} MW)<extra></extra>"))
+            fig = style(fig, height=360, x_title="Share of generation")
+            fig.update_layout(barmode="stack", bargap=0.35, hovermode="y unified", showlegend=False)
+            fig.update_xaxes(tickformat=".0%", range=[0, 1])
+            fig.update_yaxes(autorange="reversed")
+            chart(fig, width="stretch")
+            gas = fc_[fc_["fuel"] == "Natural gas"].set_index("condition")["share"]
+            if {"All hours", "Uri load shed"} <= set(gas.index):
+                st.caption(f"Natural gas: {gas['All hours']:.0%} of generation in a typical hour, "
+                           f"{gas.get('Top 5% demand hours', float('nan')):.0%} in each year's top 5% demand hours, "
+                           f"{gas['Uri load shed']:.0%} during the Uri blackouts.")
+    with st.expander("View fuel mix as a table"):
+        st.dataframe(fm.pivot_table(index="month", columns="fuel", values="share").sort_index(ascending=False)
+                     .reset_index().assign(month=lambda x: x["month"].dt.strftime("%b %Y")),
+                     hide_index=True, width="stretch",
+                     column_config={f: st.column_config.NumberColumn(format="percent") for f in FUELS})
+
 # ---------- 5. forecast accuracy + data quality ----------
 left, right = st.columns(2)
 with left:
@@ -273,7 +338,7 @@ with right:
     st.markdown(
         f"- **{h['rows_modeled']:,}** rows modeled across **{h['hours']:,}** hours\n"
         f"- **{h['missing_hours']:,}** hours missing from the EIA feed, caught by a dbt test\n"
-        f"- 51 data tests and 3 unit tests run on every dbt build\n"
+        f"- {h.get('data_tests', 71)} data tests and {h.get('unit_tests', 4)} unit tests run on every dbt build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
     miss = data["missing"]

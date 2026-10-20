@@ -76,6 +76,16 @@ def main() -> None:
     revisions = con.sql("select count(*), coalesce(sum(abs(change_mwh)), 0) from rpt_eia_revisions").fetchone()
     print(f"EIA revisions seen : {revisions[0]:,} day/series changes ({fmt(revisions[1])} MWh moved), "
           "tracked by snp_eia_daily_totals")
+    fuel = con.sql("select year, renewable_share, gas_share, coal_share from agg_fuel_yearly "
+                   "where generation_twh > 0 order by year").fetchall()
+    if fuel:
+        f0, f1 = fuel[0], fuel[-1]
+        print(f"Fuel mix           : renewables {f0[1]:.0%} ({f0[0]}) -> {f1[1]:.0%} ({f1[0]}); "
+              f"coal {f0[3]:.0%} -> {f1[3]:.0%}")
+    stress = con.sql("""select condition, share from agg_fuel_by_condition where fuel_key = 'NG'
+                        order by condition""").fetchall()
+    if stress:
+        print("Gas share          : " + ", ".join(f"{c} {s:.0%}" for c, s in stress))
     print(f"Missing grid hours : {missing:,} (see dq_grid_missing_hours)")
     print()
 

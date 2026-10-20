@@ -2,8 +2,8 @@
 
     ingest_grid ───┐
     ingest_zones ──┤                                                            ┌─► report
-                  ├─► upload_to_s3 (skipped if S3 not configured) ─► dbt_build ─┤
-    ingest_weather┘                                                            └─► export_dashboard
+    ingest_fuel ───┼─► upload_to_s3 (skipped if S3 not configured) ─► dbt_build ─┤
+    ingest_weather ┘                                                            └─► export_dashboard
 
 Each task shells out to the same CLI commands you run by hand, so the
 pipeline behaves identically in Airflow and in a terminal.
@@ -55,6 +55,12 @@ with DAG(
         cwd=PROJECT_DIR,
     )
 
+    ingest_fuel = BashOperator(
+        task_id="ingest_fuel",
+        bash_command=f"{PY} -m src.ingestion.eia_fuel --days 7",
+        cwd=PROJECT_DIR,
+    )
+
     ingest_weather = BashOperator(
         task_id="ingest_weather",
         bash_command=f"{PY} -m src.ingestion.weather --days 14",
@@ -90,7 +96,7 @@ with DAG(
         cwd=PROJECT_DIR,
     )
 
-    [ingest_grid, ingest_zones, ingest_weather] >> upload_to_s3 >> dbt_build >> [report, export_dashboard]
+    [ingest_grid, ingest_zones, ingest_fuel, ingest_weather] >> upload_to_s3 >> dbt_build >> [report, export_dashboard]
 
 
 with DAG(
@@ -116,6 +122,12 @@ with DAG(
         cwd=PROJECT_DIR,
         execution_timeout=timedelta(hours=3),
     )
+    fuel = BashOperator(
+        task_id="backfill_fuel",
+        bash_command=f"{PY} -m src.ingestion.eia_fuel --start {{{{ params.start }}}}",
+        cwd=PROJECT_DIR,
+        execution_timeout=timedelta(hours=3),
+    )
     weather = BashOperator(
         task_id="backfill_weather",
         bash_command=f"{PY} -m src.ingestion.weather --start {{{{ params.start }}}}",
@@ -135,4 +147,4 @@ with DAG(
         cwd=PROJECT_DIR,
         trigger_rule="none_failed",
     )
-    [grid, zones, weather] >> sync >> build
+    [grid, zones, fuel, weather] >> sync >> build

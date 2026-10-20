@@ -3,7 +3,7 @@ from src.sample_data import build
 
 
 def test_sample_lake_shapes():
-    wx, grid, zones = build()
+    wx, grid, zones, fuel = build()
     assert {"dallas", "houston", "austin", "san_antonio", "midland"} <= set(wx["city"])
     assert zones["zone_code"].nunique() == 8
     assert set(grid["type"]) == {"D", "DF", "NG"}
@@ -15,3 +15,7 @@ def test_sample_lake_shapes():
     d = feb16[feb16["type"] == "D"]["value_mwh"].mean()
     f = feb16[feb16["type"] == "DF"]["value_mwh"].mean()
     assert f - d > 10_000
+    # Fuel mix covers the main sources and adds up to net generation.
+    assert {"NG", "WND", "SUN", "NUC", "COL"} <= set(fuel["fuel_code"])
+    ng = grid[grid["type"] == "NG"]["value_mwh"].sum()
+    assert abs(fuel["generation_mwh"].sum() - ng) / ng < 0.03

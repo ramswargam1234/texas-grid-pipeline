@@ -55,3 +55,23 @@ unit_tests:
       rows:
         - {zone_code: SCEN, zone_temp_f: 98, zone_humidity_pct: 45, cities_reporting: 2}
         - {zone_code: COAS, zone_temp_f: 94, zone_humidity_pct: 70, cities_reporting: 1}
+
+  - name: fuel_shares_ignore_battery_charging
+    description: An hour's shares add up to 100%; a charging battery (negative MWh) gets 0% and is not in the total.
+    model: fct_fuel_hourly
+    given:
+      - input: ref('stg_eia__ercot_fuel_hourly')
+        rows:
+          - {period_utc: "2024-07-01 20:00:00+00", fuel_code: NG,  fuel_name: gas,     generation_mwh: 30000}
+          - {period_utc: "2024-07-01 20:00:00+00", fuel_code: SUN, fuel_name: solar,   generation_mwh: 20000}
+          - {period_utc: "2024-07-01 20:00:00+00", fuel_code: BAT, fuel_name: battery, generation_mwh: -1000}
+      - input: ref('dim_fuel')
+        rows:
+          - {fuel_key: NG,  fuel_label: Natural gas,     fuel_group: Fossil,    is_renewable: false, is_carbon_free: false}
+          - {fuel_key: SUN, fuel_label: Solar,           fuel_group: Renewable, is_renewable: true,  is_carbon_free: true}
+          - {fuel_key: BAT, fuel_label: Battery storage, fuel_group: Storage,   is_renewable: false, is_carbon_free: false}
+    expect:
+      rows:
+        - {fuel_key: NG,  generation_mwh: 30000, share_of_hour: 0.6}
+        - {fuel_key: SUN, generation_mwh: 20000, share_of_hour: 0.4}
+        - {fuel_key: BAT, generation_mwh: -1000, share_of_hour: 0}

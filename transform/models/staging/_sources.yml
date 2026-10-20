@@ -12,5 +12,9 @@ sources:
           Types: D = demand, DF = day-ahead demand forecast, NG = net generation. Values in MWh.
       - name: eia_ercot_zone_hourly
         description: Hourly demand per ERCOT weather zone from EIA (region-sub-ba-data), parent = ERCO. MWh.
+      - name: eia_ercot_fuel_hourly
+        description: >
+          Hourly ERCOT net generation by fuel type from EIA (fuel-type-data), respondent = ERCO. MWh.
+          Battery storage is negative while charging.
       - name: weather_hourly
         description: Hourly Open-Meteo weather for 9 Texas cities, one or more per ERCOT weather zone (UTC).

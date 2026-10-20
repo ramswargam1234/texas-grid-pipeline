@@ -118,3 +118,51 @@ models:
     description: >
       One row per detected EIA revision: a day/series whose published total or hour count changed after
       we first loaded it. Built from the snp_eia_daily_totals snapshot.
+
+  - name: fct_fuel_hourly
+    description: >
+      Star-schema fact at grain (hour, fuel): ERCOT net generation by fuel type and its share of that
+      hour's generation. Joins to dim_date and dim_fuel.
+    columns:
+      - name: date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: fuel_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_fuel')
+                field: fuel_key
+              config:
+                severity: warn
+      - name: share_of_hour
+        description: Generation / the hour's total positive generation (battery charging excluded).
+
+  - name: agg_fuel_monthly
+    description: Monthly generation (GWh) and share by fuel type.
+    columns:
+      - name: month
+        data_tests: [not_null]
+
+  - name: agg_fuel_yearly
+    description: Yearly renewable and carbon-free share of ERCOT generation, plus wind, solar, gas and coal shares.
+    columns:
+      - name: year
+        data_tests: [unique, not_null]
+
+  - name: agg_fuel_by_condition
+    description: >
+      Fuel shares under three grid conditions: all hours, each year's top 5% demand hours, and the
+      Winter Storm Uri load-shed hours. Shows which sources carry the grid when it is stressed.
+    columns:
+      - name: condition
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['All hours', 'Top 5% demand hours', 'Uri load shed']

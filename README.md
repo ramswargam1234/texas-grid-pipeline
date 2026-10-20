@@ -5,12 +5,13 @@
 
 **Live dashboard:** https://texas-grid-ram.streamlit.app
 
-An end-to-end data pipeline that joins **hourly Texas power grid (ERCOT) demand** with **hourly weather for 9 Texas cities** to answer:
+An end-to-end data pipeline that joins **hourly Texas power grid (ERCOT) demand and generation by fuel** with **hourly weather for 9 Texas cities** to answer:
 
 - How much does temperature drive Texas electricity demand?
 - When is the grid under the most stress, and how good is the day-ahead forecast?
 - What happened to demand during extreme weather events (e.g., heat waves, the Feb 2021 freeze)?
 - Which of ERCOT's 8 weather zones are most sensitive to heat?
+- Where does Texas get its power, and which sources carry the grid when demand peaks?
 
 ## Architecture (target)
 
@@ -47,11 +48,13 @@ python -m src.sample_data       # optional: synthetic data lake, no API keys nee
 # Backfill (safe to re-run: retries on server errors, skips months already loaded)
 python -m src.ingestion.eia_demand --start 2021-01-01
 python -m src.ingestion.eia_zones  --start 2021-01-01
+python -m src.ingestion.eia_fuel   --start 2021-01-01
 python -m src.ingestion.weather    --start 2021-01-01
 
 # Daily refresh
 python -m src.ingestion.eia_demand --days 7
 python -m src.ingestion.eia_zones  --days 7
+python -m src.ingestion.eia_fuel   --days 7
 python -m src.ingestion.weather    --days 14
 
 # Upload new/changed files to S3
@@ -86,7 +89,7 @@ docker compose down              # stop
 
 | DAG | Schedule | Tasks |
 |---|---|---|
-| `texas_grid_daily` | 7:00 AM Central | `ingest_grid` + `ingest_zones` + `ingest_weather` → `upload_to_s3` → `dbt_build` → `report` + `export_dashboard` |
+| `texas_grid_daily` | 7:00 AM Central | `ingest_grid` + `ingest_zones` + `ingest_fuel` + `ingest_weather` → `upload_to_s3` → `dbt_build` → `report` + `export_dashboard` |
 | `texas_grid_backfill` | manual (param: `start`) | backfill both sources → `upload_to_s3` → `dbt_build` |
 
 - Retries with exponential backoff on every task; one run at a time (`max_active_runs=1`).
@@ -145,10 +148,13 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `fct_zone_hourly` | 1 row / hour / zone | Demand in each of ERCOT's 8 weather zones, joined to that zone's own weather |
 | `fct_grid_series_hourly` | 1 row / hour / series | Star-schema fact for the whole grid (demand, forecast, generation) |
 | `rpt_eia_revisions` | 1 row / detected revision | EIA days whose published totals changed after first load (from the snapshot) |
-| `dim_date`, `dim_zone`, `dim_series` | 1 row / date, zone, series | Conformed dimensions shared by the fact tables |
+| `fct_fuel_hourly` | 1 row / hour / fuel | Net generation by fuel type (gas, wind, solar, coal, nuclear, ...) and its share of the hour |
+| `agg_fuel_monthly`, `agg_fuel_yearly` | 1 row / month / fuel, 1 row / year | Fuel mix over time; renewable and carbon-free share by year |
+| `agg_fuel_by_condition` | 1 row / condition / fuel | Fuel shares in all hours vs. each year's top 5% demand hours vs. the Uri blackouts |
+| `dim_date`, `dim_zone`, `dim_series`, `dim_fuel` | 1 row / date, zone, series, fuel | Conformed dimensions shared by the fact tables |
 | `agg_zone_profile` | 1 row / zone | Share of energy, peak, and heat sensitivity (MWh and % per °F above 75°F) |
 
-**Data tests (51):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, and a check that the 8 weather zones add up to ERCOT's total within 3%.
+**Data tests (71):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
 
 ## History and unit tests
 
@@ -157,8 +163,8 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
   when the change was detected. The daily cloud job keeps the DuckDB warehouse in S3 (`state/warehouse.duckdb`),
   restoring it before `dbt build` and saving it after, so snapshot history accumulates across runs.
 - **dbt unit tests** (`transform/models/unit_tests.yml`) check model logic on small hand-written inputs:
-  the Uri forecast-gap math and load-shed window, season and weekend flags in `dim_date`, and averaging of
-  multi-city weather zones.
+  the Uri forecast-gap math and load-shed window, season and weekend flags in `dim_date`, averaging of
+  multi-city weather zones, and fuel shares that leave out battery charging.
 
 ## Star schema
 
@@ -173,6 +179,8 @@ erDiagram
     dim_date   ||--o{ fct_zone_hourly : date_key
     dim_zone   ||--o{ fct_zone_hourly : zone_key
     dim_date   ||--o{ fct_grid_hourly : date_key
+    dim_date   ||--o{ fct_fuel_hourly : date_key
+    dim_fuel   ||--o{ fct_fuel_hourly : fuel_key
 
     dim_date {
         int date_key PK "YYYYMMDD, Central time"
@@ -203,6 +211,19 @@ erDiagram
         string zone_key FK
         double demand_mwh
         double zone_temp_f
+    }
+    dim_fuel {
+        string fuel_key PK "NG, WND, SUN, COL, NUC, ..."
+        string fuel_label
+        string fuel_group
+        bool is_renewable
+    }
+    fct_fuel_hourly {
+        timestamp period_utc
+        int date_key FK
+        string fuel_key FK
+        double generation_mwh
+        double share_of_hour
     }
 ```
 
@@ -240,6 +261,7 @@ of about 76.8 GW without load shed ([S&P Global](https://www.spglobal.com/commod
 data/raw/
   eia_ercot_hourly/year=YYYY/month=MM/data.parquet       # demand (D), forecast (DF), net generation (NG), MWh
   eia_ercot_zone_hourly/year=YYYY/month=MM/data.parquet  # demand per ERCOT weather zone, MWh
+  eia_ercot_fuel_hourly/year=YYYY/month=MM/data.parquet  # net generation per fuel type, MWh
   weather_hourly/year=YYYY/month=MM/data.parquet     # temp_f, feels_like_f, humidity_pct per city
 ```
 

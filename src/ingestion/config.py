@@ -19,6 +19,8 @@ EIA_TYPES = [t.strip() for t in os.getenv("EIA_TYPES", "D,DF,NG").split(",") if 
 EIA_PAGE_SIZE = 5000  # API maximum rows per request
 # Hourly demand for each ERCOT weather zone ("sub-balancing authority"), parent = ERCO.
 EIA_ZONE_URL = "https://api.eia.gov/v2/electricity/rto/region-sub-ba-data/data/"
+# Hourly net generation by fuel type (wind, solar, gas, coal, nuclear, ...).
+EIA_FUEL_URL = "https://api.eia.gov/v2/electricity/rto/fuel-type-data/data/"
 
 # ---- Open-Meteo historical weather (no key needed) ----
 WEATHER_URL = "https://archive-api.open-meteo.com/v1/archive"

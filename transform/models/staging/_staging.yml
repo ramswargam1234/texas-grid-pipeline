@@ -46,3 +46,21 @@ models:
                 field: zone_code
       - name: demand_mwh
         description: Zone demand for the hour, MWh.
+
+  - name: stg_eia__ercot_fuel_hourly
+    description: Cleaned, de-duplicated hourly net generation per fuel type (one row per hour and fuel).
+    columns:
+      - name: period_utc
+        data_tests: [not_null]
+      - name: fuel_code
+        description: EIA fuel type code (NG, WND, SUN, COL, NUC, ...).
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('ercot_fuel_types')
+                field: fuel_code
+              config:
+                severity: warn   # a new EIA code should be added to the seed, not break the build
+      - name: generation_mwh
+        description: Net generation for the hour, MWh (negative for batteries while charging).

@@ -20,6 +20,11 @@ log = logging.getLogger("export_dashboard")
 DB_PATH = config.DATA_DIR / "warehouse.duckdb"
 OUT_DIR = config.PROJECT_ROOT / "dashboard" / "snapshot"
 
+FUEL_GROUP = """case fuel_key when 'WND' then 'Wind' when 'NG' then 'Natural gas' when 'NUC' then 'Nuclear'
+                       when 'SUN' then 'Solar' when 'SNB' then 'Solar' when 'COL' then 'Coal'
+                       else 'Other' end"""
+MANIFEST = config.PROJECT_ROOT / "transform" / "target" / "manifest.json"
+
 QUERIES = {
     # One row per day: peak demand, weather, forecast accuracy.
     "daily": """
@@ -68,6 +73,22 @@ QUERIES = {
         from agg_zone_profile
         order by share_of_energy desc
     """,
+    # Monthly fuel mix, small fuels folded into "Other" so the chart stays readable.
+    "fuel_monthly": f"""
+        select month, {FUEL_GROUP} as fuel, sum(generation_gwh) as generation_gwh, sum(share) as share
+        from agg_fuel_monthly
+        where month in (select month from agg_fuel_monthly group by 1 having max(hours) >= 24 * 7)
+                    -- skip partial months at the edges of the range
+        group by 1, 2
+        order by 1, 2
+    """,
+    # Fuel shares in all hours, peak-demand hours and the Uri blackouts.
+    "fuel_by_condition": f"""
+        select condition, {FUEL_GROUP} as fuel, sum(share) as share, sum(avg_mw) as avg_mw, max(hours) as hours
+        from agg_fuel_by_condition
+        group by 1, 2
+        order by 1, 2
+    """,
     # Data-quality: missing demand hours per month.
     "missing_by_month": """
         select date_trunc('month', date_local)::date as month, count(*) as missing_hours
@@ -93,6 +114,18 @@ def headline(con) -> dict:
                    from fct_grid_hourly""")[0]
     mape = one("select avg(abs_pct_error) * 100 from fct_grid_hourly")[0]
     missing = one("select count(*) from dq_grid_missing_hours")[0]
+    fuel = con.sql("""select year, renewable_share, carbon_free_share, gas_share, coal_share
+                      from agg_fuel_yearly where generation_twh > 0 order by year""").df()
+    full_years = fuel[fuel["year"] < datetime.now(timezone.utc).year]
+    fuel_years = full_years if len(full_years) >= 2 else fuel
+    fuel_summary = {}
+    if len(fuel_years):
+        f0, f1 = fuel_years.iloc[0], fuel_years.iloc[-1]
+        fuel_summary = {"first_year": int(f0["year"]), "latest_year": int(f1["year"]),
+                        "renewable_first": float(f0["renewable_share"]),
+                        "renewable_latest": float(f1["renewable_share"]),
+                        "carbon_free_latest": float(f1["carbon_free_share"]),
+                        "coal_first": float(f0["coal_share"]), "coal_latest": float(f1["coal_share"])}
     uri_df = con.sql("select * from agg_uri_summary").df()
     uri = {k: (None if v != v else v) for k, v in uri_df.iloc[0].to_dict().items()} if len(uri_df) else {}
     return {
@@ -108,8 +141,19 @@ def headline(con) -> dict:
         "forecast_mape_pct": mape,
         "missing_hours": missing,
         "uri": uri,
+        "fuel": fuel_summary,
+        **test_counts(),
         "exported_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
+
+
+def test_counts() -> dict:
+    """Count dbt data tests and unit tests from the last build's manifest (shown on the dashboard)."""
+    if not MANIFEST.exists():
+        return {}
+    m = json.loads(MANIFEST.read_text())
+    data_tests = sum(1 for n in m.get("nodes", {}).values() if n.get("resource_type") == "test")
+    return {"data_tests": data_tests, "unit_tests": len(m.get("unit_tests", {}))}
 
 
 def main() -> None:

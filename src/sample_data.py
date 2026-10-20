@@ -15,7 +15,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from src.ingestion import config, eia_demand, eia_zones, weather
+from src.ingestion import config, eia_demand, eia_fuel, eia_zones, weather
 from src.ingestion.common import write_monthly
 
 log = logging.getLogger("sample_data")
@@ -28,7 +28,7 @@ ZONES = {"COAS": (0.27, 2), "NCEN": (0.30, 0), "SCEN": (0.15, 2), "FWES": (0.08,
          "SOUT": (0.08, 4), "EAST": (0.04, -1), "NRTH": (0.03, -3), "WEST": (0.05, -2)}
 
 
-def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     rng = np.random.default_rng(seed)
     hours = pd.date_range(START, END, freq="h", tz="UTC")
     local = hours.tz_convert("America/Chicago").tz_localize(None)
@@ -71,13 +71,35 @@ def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         for code, (share, _) in ZONES.items():
             zone_rows.append({"period": period, "parent": "ERCO", "subba": code, "subba-name": code,
                               "value": f"{actual[i] * share:.0f}", "value-units": "megawatthours"})
-    return pd.concat(wx, ignore_index=True), eia_demand.to_frame(rows), eia_zones.to_frame(zone_rows)
+
+    # Fuel mix (MWh) adding up to net generation: flat nuclear, wind stronger at night, solar by day,
+    # gas fills the rest. During the freeze wind and solar fall and one nuclear unit trips, like Uri.
+    gen = actual * 0.98
+    daylight = np.clip(np.sin(np.pi * (hr - 7) / 12), 0, None)
+    nuclear = np.where(freeze & (local >= pd.Timestamp("2021-02-15 05:00")), 3_700, 4_900)
+    wind = np.clip(11_000 + 4_000 * np.cos(2 * np.pi * hr / 24) + rng.normal(0, 2_500, len(hours)), 500, None)
+    wind = np.where(freeze, wind * 0.3, wind)
+    solar = 4_000 * daylight * np.where(freeze, 0.4, 1.0)
+    coal = np.full(len(hours), 9_000.0)
+    other = np.full(len(hours), 300.0)
+    battery = 150 * np.sin(2 * np.pi * (hr - 13) / 24)  # charges midday, discharges in the evening
+    gas = np.clip(gen - (nuclear + wind + solar + coal + other + battery), 1_000, None)
+    fuels = {"NUC": nuclear, "WND": wind, "SUN": solar, "COL": coal, "OTH": other, "BAT": battery, "NG": gas}
+    fuel_rows = []
+    for i, ts in enumerate(hours):
+        period = ts.strftime("%Y-%m-%dT%H")
+        for code, series in fuels.items():
+            fuel_rows.append({"period": period, "respondent": "ERCO", "fueltype": code, "type-name": code,
+                              "value": f"{series[i]:.0f}", "value-units": "megawatthours"})
+    return (pd.concat(wx, ignore_index=True), eia_demand.to_frame(rows), eia_zones.to_frame(zone_rows),
+            eia_fuel.to_frame(fuel_rows))
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    wx, grid, zones = build()
+    wx, grid, zones, fuel = build()
     write_monthly(wx, weather.DATASET, "period_utc", config.RAW_DIR)
+    write_monthly(fuel, eia_fuel.DATASET, "period_utc", config.RAW_DIR)
     write_monthly(grid, eia_demand.DATASET, "period_utc", config.RAW_DIR)
     write_monthly(zones, eia_zones.DATASET, "period_utc", config.RAW_DIR)
     log.info("Sample lake written to %s (%d grid rows, %d weather rows)", config.RAW_DIR, len(grid), len(wx))
