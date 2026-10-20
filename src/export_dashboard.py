@@ -73,6 +73,21 @@ QUERIES = {
         from agg_zone_profile
         order by share_of_energy desc
     """,
+    # Heat sensitivity per zone per year, with 95% confidence intervals (reliable years only).
+    "zone_heat_trend": """
+        select zone_code, zone_label, year, hot_days, slope_pct_per_f, ci_low_pct_per_f, ci_high_pct_per_f,
+               slope_mwh_per_f
+        from agg_zone_heat_trend
+        where is_reliable
+        order by zone_code, year
+    """,
+    # First vs latest year per zone, with a verdict that only calls a change when intervals don't overlap.
+    "zone_heat_change": """
+        select zone_code, zone_label, first_year, latest_year, first_pct_per_f, latest_pct_per_f,
+               change_pct_points, verdict
+        from rpt_zone_heat_change
+        order by change_pct_points desc
+    """,
     # Monthly fuel mix, small fuels folded into "Other" so the chart stays readable.
     "fuel_monthly": f"""
         select month, {FUEL_GROUP} as fuel, sum(generation_gwh) as generation_gwh, sum(share) as share

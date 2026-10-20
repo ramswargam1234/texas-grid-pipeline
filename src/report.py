@@ -73,6 +73,15 @@ def main() -> None:
         top, bottom = zones[0], zones[-1]
         print(f"Zones              : {len(zones)}; most heat-sensitive {top[0]} (+{top[2]:.2f}%/°F), "
               f"least {bottom[0]} (+{bottom[2]:.2f}%/°F)")
+    change = con.sql("""select zone_label, first_year, latest_year, first_pct_per_f, latest_pct_per_f, verdict
+                         from rpt_zone_heat_change where verdict != 'Not enough years'
+                         order by change_pct_points desc""").fetchall()
+    if change:
+        up, down = change[0], change[-1]
+        clear = sum(1 for c in change if c[5] != "No clear change")
+        print(f"Zone heat trend    : biggest rise {up[0]} {up[3]:+.2f} -> {up[4]:+.2f}%/°F ({up[1]}-{up[2]}, {up[5]}); "
+              f"biggest drop {down[0]} {down[3]:+.2f} -> {down[4]:+.2f}%/°F ({down[5]}); "
+              f"{clear} of {len(change)} zones changed beyond the 95% intervals")
     revisions = con.sql("select count(*), coalesce(sum(abs(change_mwh)), 0) from rpt_eia_revisions").fetchone()
     print(f"EIA revisions seen : {revisions[0]:,} day/series changes ({fmt(revisions[1])} MWh moved), "
           "tracked by snp_eia_daily_totals")

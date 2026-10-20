@@ -10,7 +10,7 @@ An end-to-end data pipeline that joins **hourly Texas power grid (ERCOT) demand 
 - How much does temperature drive Texas electricity demand?
 - When is the grid under the most stress, and how good is the day-ahead forecast?
 - What happened to demand during extreme weather events (e.g., heat waves, the Feb 2021 freeze)?
-- Which of ERCOT's 8 weather zones are most sensitive to heat?
+- Which of ERCOT's 8 weather zones are most sensitive to heat, and is that changing year by year?
 - Where does Texas get its power, and which sources carry the grid when demand peaks?
 
 ## Architecture (target)
@@ -153,8 +153,10 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `agg_fuel_by_condition` | 1 row / condition / fuel | Fuel shares in all hours vs. each year's top 5% demand hours vs. the Uri blackouts |
 | `dim_date`, `dim_zone`, `dim_series`, `dim_fuel` | 1 row / date, zone, series, fuel | Conformed dimensions shared by the fact tables |
 | `agg_zone_profile` | 1 row / zone | Share of energy, peak, and heat sensitivity (MWh and % per °F above 75°F) |
+| `agg_zone_heat_trend` | 1 row / zone / year | Heat sensitivity per year with 95% confidence intervals, fit on daily averages for days ≥ 75°F |
+| `rpt_zone_heat_change` | 1 row / zone | First vs latest year; calls a change only when the two 95% intervals don't overlap |
 
-**Data tests (71):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
+**Data tests (79):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
 
 ## History and unit tests
 
@@ -164,7 +166,8 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
   restoring it before `dbt build` and saving it after, so snapshot history accumulates across runs.
 - **dbt unit tests** (`transform/models/unit_tests.yml`) check model logic on small hand-written inputs:
   the Uri forecast-gap math and load-shed window, season and weekend flags in `dim_date`, averaging of
-  multi-city weather zones, and fuel shares that leave out battery charging.
+  multi-city weather zones, fuel shares that leave out battery charging, the heat-trend slope and confidence
+  interval on a perfect line, and the rule that only calls a zone's change when the intervals don't overlap.
 
 ## Star schema
 

@@ -166,3 +166,35 @@ models:
           - accepted_values:
               arguments:
                 values: ['All hours', 'Top 5% demand hours', 'Uri load shed']
+
+  - name: agg_zone_heat_trend
+    description: >
+      Heat sensitivity per ERCOT weather zone per year, with 95% confidence intervals. Fit on daily
+      averages for days at or above 75°F (zone's own weather). Years with fewer than 30 hot days are
+      marked not reliable.
+    columns:
+      - name: zone_code
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_zone')
+                field: zone_key
+      - name: year
+        data_tests: [not_null]
+      - name: slope_pct_per_f
+        description: Extra daily demand per +1°F as a % of the zone's average demand that year.
+      - name: ci_low_pct_per_f
+        description: Lower end of the 95% confidence interval (slope - 1.96 standard errors).
+
+  - name: rpt_zone_heat_change
+    description: First vs latest reliable year of heat sensitivity per zone, with a verdict that only
+      calls a change when the two 95% confidence intervals don't overlap.
+    columns:
+      - name: zone_code
+        data_tests: [unique, not_null]
+      - name: verdict
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['More heat-sensitive', 'Less heat-sensitive', 'No clear change', 'Not enough years']

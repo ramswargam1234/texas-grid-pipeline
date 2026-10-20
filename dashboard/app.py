@@ -48,6 +48,8 @@ def load(snapshot_version: float):
         "freeze": csv("freeze_2021", parse_dates=["period_local"]),
         "missing": csv("missing_by_month", parse_dates=["month"]),
         "zones": csv("zones") if (SNAPSHOT / "zones.csv").exists() else pd.DataFrame(),
+        "heat_trend": (csv("zone_heat_trend") if (SNAPSHOT / "zone_heat_trend.csv").exists() else pd.DataFrame()),
+        "heat_change": (csv("zone_heat_change") if (SNAPSHOT / "zone_heat_change.csv").exists() else pd.DataFrame()),
         "fuel_monthly": (csv("fuel_monthly", parse_dates=["month"])
                          if (SNAPSHOT / "fuel_monthly.csv").exists() else pd.DataFrame()),
         "fuel_condition": (csv("fuel_by_condition")
@@ -265,6 +267,41 @@ if not zones.empty:
         chart(fig, width="stretch")
     st.caption("A dbt test checks every hour that the 8 zones add up to ERCOT's total (within 3%).")
 
+    trend, change = data["heat_trend"], data["heat_change"]
+    if not trend.empty and trend["year"].nunique() >= 2:
+        st.markdown("**Is each zone getting more heat-sensitive?** Heat sensitivity per year, fit on daily averages "
+                    "for days at or above 75°F. Bars show the 95% confidence interval; a change only counts when "
+                    "the first and latest years' intervals don't overlap.")
+        order = (change.sort_values("change_pct_points", ascending=False)["zone_label"].tolist()
+                 if not change.empty else sorted(trend["zone_label"].unique()))
+        t = trend.assign(err_hi=trend["ci_high_pct_per_f"] - trend["slope_pct_per_f"],
+                         err_lo=trend["slope_pct_per_f"] - trend["ci_low_pct_per_f"])
+        fig = px.scatter(t, x="year", y="slope_pct_per_f", facet_col="zone_label", facet_col_wrap=4,
+                         category_orders={"zone_label": order}, error_y="err_hi", error_y_minus="err_lo",
+                         custom_data=["hot_days", "ci_low_pct_per_f", "ci_high_pct_per_f"],
+                         facet_row_spacing=0.16, facet_col_spacing=0.04)
+        fig.update_traces(mode="lines+markers", line=dict(color=BLUE, width=2),
+                          marker=dict(color=BLUE, size=8, line=dict(color="#ffffff", width=2)),
+                          error_y=dict(color=BLUE, thickness=1.5, width=0),
+                          hovertemplate="<b>%{x}</b><br>+%{y:.2f}% per °F<br>"
+                                        "95% CI %{customdata[1]:.2f} to %{customdata[2]:.2f}<br>"
+                                        "%{customdata[0]} hot days<extra></extra>")
+        fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1], font=dict(size=12)))
+        fig = style(fig, height=480)
+        fig.update_layout(hovermode="closest", margin=dict(l=8, r=8, t=36, b=8))
+        fig.update_xaxes(title="", dtick=1, tickformat="d")
+        fig.update_yaxes(title="", ticksuffix="%", matches=None, showticklabels=True)
+        chart(fig, width="stretch")
+        st.caption("Each panel has its own scale, so read the trend within a zone; compare zones with the bars above.")
+        if not change.empty:
+            st.dataframe(
+                change[["zone_label", "first_year", "first_pct_per_f", "latest_year", "latest_pct_per_f", "verdict"]],
+                hide_index=True, width="stretch",
+                column_config={"zone_label": "Zone", "first_year": "From", "latest_year": "To",
+                               "first_pct_per_f": st.column_config.NumberColumn("% per °F (from)", format="%.2f"),
+                               "latest_pct_per_f": st.column_config.NumberColumn("% per °F (to)", format="%.2f"),
+                               "verdict": "Verdict"})
+
 # ---------- 4c. fuel mix ----------
 fm, fc_ = data["fuel_monthly"], data["fuel_condition"]
 if not fm.empty:
@@ -338,7 +375,7 @@ with right:
     st.markdown(
         f"- **{h['rows_modeled']:,}** rows modeled across **{h['hours']:,}** hours\n"
         f"- **{h['missing_hours']:,}** hours missing from the EIA feed, caught by a dbt test\n"
-        f"- {h.get('data_tests', 71)} data tests and {h.get('unit_tests', 4)} unit tests run on every dbt build\n"
+        f"- {h.get('data_tests', 79)} data tests and {h.get('unit_tests', 6)} unit tests run on every dbt build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
     miss = data["missing"]
