@@ -1,0 +1,15 @@
+holiday_name,is_nerc_holiday,days,median_change_pct,min_change_pct,max_change_pct,weather_distorted_days_left_out
+New Year's Eve,False,4,-11.34,-17.71,5.24,0
+Day after Thanksgiving,False,3,-9.96,-10.37,-3.29,2
+Christmas Day,True,3,-8.83,-14.5,-4.5,4
+Thanksgiving Day,True,4,-8.8,-12.97,-5.9,1
+Independence Day,True,8,-5.47,-11.12,8.97,0
+Veterans Day,False,5,-5.19,-7.41,0.74,1
+Memorial Day,True,6,-4.72,-12.09,8.49,0
+Labor Day,True,6,-4.69,-10.42,3.61,0
+New Year's Day,True,4,-4.53,-15.37,1.68,4
+Presidents' Day,False,2,-3.62,-5.83,-1.41,4
+Martin Luther King Jr. Day,False,3,-2.55,-3.29,0.73,3
+Christmas Eve,False,1,0.68,0.68,0.68,3
+Columbus Day,False,6,0.77,-12.21,7.7,0
+Juneteenth,False,8,4.27,-10.8,10.47,0
