@@ -21,6 +21,8 @@ vars:
   # Wider window shown on the dashboard, and excluded from the weather model's training data.
   uri_window_start: "2021-02-08 00:00:00"
   uri_window_end: "2021-02-22 00:00:00"    # exclusive
+  # Year when EIA's zone figures add up to 4-5% more than ERCOT's total (see README, Known data issue).
+  zone_data_issue_year: 2025
 
 models:
   texas_grid:

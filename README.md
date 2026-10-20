@@ -155,8 +155,9 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `agg_zone_profile` | 1 row / zone | Share of energy, peak, and heat sensitivity (MWh and % per °F above 75°F) |
 | `agg_zone_heat_trend` | 1 row / zone / year | Heat sensitivity per year with 95% confidence intervals, fit on daily averages for days ≥ 75°F |
 | `rpt_zone_heat_change` | 1 row / zone | First vs latest year; calls a change only when the two 95% intervals don't overlap |
+| `rpt_zone_heat_robustness` | 1 row / zone | Reruns that verdict with zones reconciled to ERCOT's total and with 2025 left out; `is_robust` when all agree |
 
-**Data tests (79):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
+**Data tests (81):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
 
 ## History and unit tests
 
@@ -257,6 +258,18 @@ days on record. `fct_uri_unserved_hourly` estimates the missing demand two indep
 
 **Result:** an estimated **~1,340 GWh** of demand went unserved over the 72 load-shed hours (forecast gap; the weather model gives ~1,900 GWh as an upper bound). The forecast peaked at **76,783 MW** during load shed, matching ERCOT's own ~76.8 GW estimate. The largest hourly gap, **28,885 MW**, exceeds the 20 GW ERCOT ordered shed, suggesting delivered power also fell from local outages and industrial cutbacks. For reference, ERCOT reported shedding up to 20 GW and estimated peak demand
 of about 76.8 GW without load shed ([S&P Global](https://www.spglobal.com/commodity-insights/en/news-research/latest-news/electric-power/022421-ercot-lost-almost-half-of-generation-capacity-in-storm-causing-20-gw-load-shed)).
+
+## Finding: is each zone getting more heat-sensitive?
+
+`agg_zone_heat_trend` fits heat sensitivity for each of ERCOT's 8 weather zones and each year, on **daily** averages
+for days at or above 75°F (one point per day, so the 95% confidence interval isn't inflated by neighbouring hours).
+`rpt_zone_heat_change` only calls a change when the first and latest years' intervals don't overlap.
+
+EIA's zone figures add up to 4–5% more than ERCOT's total in parts of 2025 (see [ADR 0008](docs/adr/0008-testing-strategy.md)),
+so `rpt_zone_heat_robustness` reruns the same method two more ways: with each hour's zone values scaled to match ERCOT's
+total, and with 2025 left out. A verdict is reported as robust only when all three agree. Because sensitivity is measured
+as a **% of the zone's own average**, a uniform scaling error cancels out; the check guards against errors that are uneven
+across zones or months. The trend logic lives in one macro (`macros/zone_heat.sql`), so every variant uses the same method.
 
 ## Data layout
 

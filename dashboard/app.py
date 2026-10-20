@@ -294,20 +294,25 @@ if not zones.empty:
         chart(fig, width="stretch")
         st.caption("Each panel has its own scale, so read the trend within a zone; compare zones with the bars above.")
         if not change.empty:
+            cols = ["zone_label", "first_year", "first_pct_per_f", "latest_year", "latest_pct_per_f", "verdict"]
+            if "is_robust" in change:
+                change = change.assign(holds=change["is_robust"].map({True: "Yes", False: "No"}).fillna("–"))
+                cols.append("holds")
             st.dataframe(
-                change[["zone_label", "first_year", "first_pct_per_f", "latest_year", "latest_pct_per_f", "verdict"]],
-                hide_index=True, width="stretch",
+                change[cols], hide_index=True, width="stretch",
                 column_config={"zone_label": "Zone", "first_year": "From", "latest_year": "To",
                                "first_pct_per_f": st.column_config.NumberColumn("% per °F (from)", format="%.2f"),
                                "latest_pct_per_f": st.column_config.NumberColumn("% per °F (to)", format="%.2f"),
-                               "verdict": "Verdict"})
+                               "verdict": "Verdict", "holds": "Holds under checks"})
+            st.caption("Holds under checks: the verdict stays the same when each hour's zone values are scaled to "
+                       "ERCOT's total, and when 2025 (the year EIA's zone figures run 4–5% high) is left out.")
 
 # ---------- 4c. fuel mix ----------
 fm, fc_ = data["fuel_monthly"], data["fuel_condition"]
 if not fm.empty:
     st.subheader("Where Texas gets its power")
     fs = h.get("fuel") or {}
-    if fs:
+    if fs and fs["latest_year"] > fs["first_year"]:
         st.markdown(
             f"Hourly generation by fuel from EIA. Renewables (mostly wind and solar) went from **{fs['renewable_first']:.0%}** of "
             f"ERCOT's generation in {fs['first_year']} to **{fs['renewable_latest']:.0%}** in {fs['latest_year']}, "
@@ -375,7 +380,7 @@ with right:
     st.markdown(
         f"- **{h['rows_modeled']:,}** rows modeled across **{h['hours']:,}** hours\n"
         f"- **{h['missing_hours']:,}** hours missing from the EIA feed, caught by a dbt test\n"
-        f"- {h.get('data_tests', 79)} data tests and {h.get('unit_tests', 6)} unit tests run on every dbt build\n"
+        f"- {h.get('data_tests', 81)} data tests and {h.get('unit_tests', 6)} unit tests run on every dbt build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
     miss = data["missing"]

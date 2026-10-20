@@ -83,10 +83,11 @@ QUERIES = {
     """,
     # First vs latest year per zone, with a verdict that only calls a change when intervals don't overlap.
     "zone_heat_change": """
-        select zone_code, zone_label, first_year, latest_year, first_pct_per_f, latest_pct_per_f,
-               change_pct_points, verdict
-        from rpt_zone_heat_change
-        order by change_pct_points desc
+        select c.zone_code, c.zone_label, c.first_year, c.latest_year, c.first_pct_per_f, c.latest_pct_per_f,
+               c.change_pct_points, c.verdict, r.is_robust, r.verdict_reconciled, r.verdict_issue_year_out
+        from rpt_zone_heat_change c
+        left join rpt_zone_heat_robustness r using (zone_code)
+        order by c.change_pct_points desc
     """,
     # Monthly fuel mix, small fuels folded into "Other" so the chart stays readable.
     "fuel_monthly": f"""

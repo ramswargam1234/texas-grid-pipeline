@@ -198,3 +198,11 @@ models:
           - accepted_values:
               arguments:
                 values: ['More heat-sensitive', 'Less heat-sensitive', 'No clear change', 'Not enough years']
+
+  - name: rpt_zone_heat_robustness
+    description: >
+      Reruns the zone heat-trend verdict two more ways: with each hour's zone values scaled to ERCOT's total,
+      and with the year of EIA's known zone data issue left out. is_robust is true when all three verdicts agree.
+    columns:
+      - name: zone_code
+        data_tests: [unique, not_null]
