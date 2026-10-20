@@ -80,7 +80,7 @@ st.markdown(
     f"How weather drives electricity demand on the Texas grid (ERCOT). "
     f"Hourly demand from the U.S. EIA joined with weather for Dallas, Houston, Austin and San Antonio, "
     f"**{h['first_date']} → {h['last_date']}**. "
-    f"Built with Python, dbt, DuckDB and Airflow. [Source code]({REPO_URL})"
+    f"Built with Python, AWS S3, dbt, DuckDB and Airflow. [Source code]({REPO_URL})"
 )
 
 # ---------- headline numbers ----------
