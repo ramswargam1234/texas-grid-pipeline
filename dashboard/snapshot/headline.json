@@ -5,23 +5,23 @@
   "hours": 50856,
   "first_date": "2020-12-31",
   "last_date": "2026-10-20",
-  "rows_modeled": 608785,
-  "heat_slope_mwh_per_f": 1388.967083845054,
+  "rows_modeled": 608786,
+  "heat_slope_mwh_per_f": 1388.9670838450352,
   "hot_vs_mild_ratio": 1.7622185283593783,
-  "forecast_mape_pct": 2.471387690350322,
-  "missing_hours": 4,
+  "forecast_mape_pct": 2.471344037812819,
+  "missing_hours": 3,
   "uri": {
     "shed_hours": 72.0,
     "shed_hours_with_data": 72.0,
     "unserved_gwh_forecast": 1342.453,
-    "unserved_gwh_weather": 1895.1602591613084,
+    "unserved_gwh_weather": 1895.1602591613052,
     "max_hourly_gap_forecast_mwh": 28885.0,
-    "max_hourly_gap_weather_mwh": 39106.14927393633,
+    "max_hourly_gap_weather_mwh": 39106.14927393629,
     "peak_forecast_mwh": 76783.0,
-    "peak_weather_expected_mwh": 85365.00447488239,
+    "peak_weather_expected_mwh": 85365.00447488233,
     "peak_actual_mwh": 65255.0,
     "min_temp_f": 7.0,
-    "weather_model_avg_r2": 0.6662528553451915,
+    "weather_model_avg_r2": 0.6662528553451901,
     "extrapolated_hours": 25.0
   },
   "fuel": {
@@ -33,7 +33,7 @@
     "coal_first": 0.1919114603582537,
     "coal_latest": 0.12809009991749282
   },
-  "data_tests": 79,
+  "data_tests": 81,
   "unit_tests": 6,
-  "exported_at_utc": "2026-10-20T21:33:24+00:00"
+  "exported_at_utc": "2026-10-20T22:22:14+00:00"
 }
