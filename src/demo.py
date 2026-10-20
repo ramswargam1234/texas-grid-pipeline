@@ -24,6 +24,8 @@ DEMO_DIR = ROOT / "data" / "demo"
 STEPS = [
     ("Build synthetic data lake", ["-m", "src.sample_data"]),
     ("dbt build: models, snapshot, unit + data tests", ["-m", "src.run_dbt"]),
+    ("Demand forecast: month-by-month backtest", ["-m", "src.forecast"]),
+    ("dbt build: forecast models and tests", ["-m", "src.run_dbt", "--stage", "forecast"]),
     ("Headline findings", ["-m", "src.report"]),
     ("Export dashboard snapshot", ["-m", "src.export_dashboard"]),
 ]

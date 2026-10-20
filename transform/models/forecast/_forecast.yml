@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: stg_model__demand_forecast_hourly
+    description: Our model's hourly demand predictions (src/forecast), one row per hour.
+    columns:
+      - name: period_utc
+        data_tests: [unique, not_null]
+      - name: predicted_mwh
+        data_tests: [not_null]
+
+  - name: fct_forecast_hourly
+    description: >
+      Hourly actual demand vs ERCOT's day-ahead forecast and our model. Note: the model uses observed
+      weather for the forecast day (a perfect weather forecast), so it has an advantage over ERCOT's
+      forecast until roadmap item t2r scores it with real day-ahead weather forecasts.
+    columns:
+      - name: period_utc
+        data_tests: [unique, not_null]
+      - name: date_key
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+
+  - name: agg_forecast_accuracy_monthly
+    description: Monthly MAPE, bias and peak-hour MAPE for our model and ERCOT's forecast on the same hours.
+    columns:
+      - name: month
+        data_tests: [unique, not_null]
+      - name: model_mape_pct
+        data_tests: [not_null]

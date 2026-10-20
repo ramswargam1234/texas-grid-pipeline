@@ -4,6 +4,7 @@ Usage:
     python -m src.run_dbt                    # dbt build on the local lake
     python -m src.run_dbt --target cloud     # dbt build reading raw files from S3
     python -m src.run_dbt --command test     # any dbt command
+    python -m src.run_dbt --stage forecast   # the forecast models, after `python -m src.forecast`
 """
 from __future__ import annotations
 
@@ -18,8 +19,13 @@ from src.ingestion import config  # loads .env into the environment
 TRANSFORM_DIR = config.PROJECT_ROOT / "transform"
 
 
-def run(command: str = "build", target: str = "dev") -> bool:
-    args = [command, "--profiles-dir", ".", "--target", target]
+# The forecast models read predictions that src/forecast writes AFTER the main build, so they run as a
+# second stage:  run_dbt (main)  ->  python -m src.forecast  ->  run_dbt --stage forecast
+STAGES = {"main": ["--exclude", "tag:forecast"], "forecast": ["--select", "tag:forecast"], "all": []}
+
+
+def run(command: str = "build", target: str = "dev", stage: str = "main") -> bool:
+    args = [command, "--profiles-dir", ".", "--target", target, *STAGES[stage]]
     # Warehouse file and raw lake follow DATA_DIR, so the demo can build in its own folder.
     os.environ.setdefault("DBT_DUCKDB_PATH", str(config.DATA_DIR / "warehouse.duckdb"))
     if target == "cloud":
@@ -41,8 +47,10 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", choices=["dev", "cloud"], default="dev")
     ap.add_argument("--command", default="build")
+    ap.add_argument("--stage", choices=list(STAGES), default="main",
+                    help="main: everything except the forecast models; forecast: only them")
     a = ap.parse_args()
-    raise SystemExit(0 if run(a.command, a.target) else 1)
+    raise SystemExit(0 if run(a.command, a.target, a.stage) else 1)
 
 
 if __name__ == "__main__":

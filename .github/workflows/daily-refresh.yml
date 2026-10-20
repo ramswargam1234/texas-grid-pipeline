@@ -63,6 +63,15 @@ jobs:
       - name: dbt build (models, snapshots, unit + data tests)
         run: python -m src.run_dbt
 
+      - name: Demand forecast (backtest new and recent months)
+        run: python -m src.forecast
+
+      - name: Push forecast files to S3
+        run: python -m src.storage.s3_sync
+
+      - name: dbt build, forecast stage (model vs ERCOT forecast)
+        run: python -m src.run_dbt --stage forecast
+
       - name: Save warehouse to S3
         run: python -m src.storage.s3_sync --state-upload
 

@@ -52,6 +52,8 @@ def load(snapshot_version: float):
         "zones": csv("zones") if (SNAPSHOT / "zones.csv").exists() else pd.DataFrame(),
         "heat_trend": (csv("zone_heat_trend") if (SNAPSHOT / "zone_heat_trend.csv").exists() else pd.DataFrame()),
         "heat_change": (csv("zone_heat_change") if (SNAPSHOT / "zone_heat_change.csv").exists() else pd.DataFrame()),
+        "forecast_compare": (csv("forecast_compare", parse_dates=["month"])
+                             if (SNAPSHOT / "forecast_compare.csv").exists() else pd.DataFrame()),
         "holidays": csv("holidays") if (SNAPSHOT / "holidays.csv").exists() else pd.DataFrame(),
         "fuel_monthly": (csv("fuel_monthly", parse_dates=["month"])
                          if (SNAPSHOT / "fuel_monthly.csv").exists() else pd.DataFrame()),
@@ -81,6 +83,11 @@ def chart(fig, **kw):
     """Render a Plotly figure without the floating toolbar."""
     st.plotly_chart(fig, config={"displayModeBar": False}, **kw)
 
+
+if not (SNAPSHOT / "headline.json").exists():
+    st.error(f"No dashboard snapshot found in `{SNAPSHOT}`. Run `make demo` (or `python -m src.demo`) "
+             "to build one from synthetic data, or `python -m src.export_dashboard` after a real build.")
+    st.stop()
 
 data = load((SNAPSHOT / "headline.json").stat().st_mtime)
 h = data["headline"]
@@ -389,6 +396,35 @@ if not fm.empty:
                      hide_index=True, width="stretch",
                      column_config={f: st.column_config.NumberColumn(format="percent") for f in FUELS})
 
+# ---------- 4d. our demand forecast vs ERCOT's ----------
+fcmp, fm_ = data["forecast_compare"], h.get("forecast_model") or {}
+if not fcmp.empty and fm_:
+    st.subheader("Our demand forecast vs ERCOT's")
+    st.markdown(
+        "A gradient-boosted model trained on hour, day of week, holidays, season, temperature and demand from "
+        "2 and 7 days earlier. It is **backtested month by month**: each month is predicted by a model trained "
+        "only on the months before it. Scored on the same hours as ERCOT's day-ahead forecast, leaving out the "
+        "Uri blackout hours."
+    )
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Our model, mean abs. % error", f"{fm_['model_mape_pct']:.2f}%",
+              delta=f"{fm_['model_mape_pct'] - fm_['eia_mape_pct']:+.2f} pts vs ERCOT", delta_color="inverse")
+    m2.metric("ERCOT day-ahead forecast", f"{fm_['eia_mape_pct']:.2f}%")
+    m3.metric("3-7 PM peak hours: ours vs ERCOT", f"{fm_['model_peak_mape_pct']:.2f}% vs {fm_['eia_peak_mape_pct']:.2f}%")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=fcmp["month"], y=fcmp["model_mape_pct"], name="Our model", mode="lines+markers",
+                             line=dict(color=BLUE, width=2), marker=dict(size=7),
+                             hovertemplate="Our model: %{y:.2f}%<extra></extra>"))
+    fig.add_trace(go.Scatter(x=fcmp["month"], y=fcmp["eia_mape_pct"], name="ERCOT day-ahead", mode="lines+markers",
+                             line=dict(color=MUTED, width=2), marker=dict(size=7),
+                             hovertemplate="ERCOT: %{y:.2f}%<extra></extra>"))
+    fig = style(fig, height=300, y_title="Mean abs. % error")
+    fig.update_layout(showlegend=True, legend=dict(orientation="h", y=1.12, x=0), margin=dict(t=36))
+    chart(fig, width="stretch")
+    st.caption("Caveat: this version uses the observed temperature of the forecast day, a perfect weather forecast. "
+               "ERCOT had to forecast the weather too, so treat our numbers as a best case. The next step scores "
+               "the model with real day-ahead weather forecasts.")
+
 # ---------- 5. forecast accuracy + data quality ----------
 left, right = st.columns(2)
 with left:
@@ -405,7 +441,7 @@ with right:
     st.markdown(
         f"- **{h['rows_modeled']:,}** rows modeled across **{h['hours']:,}** hours\n"
         f"- **{h['missing_hours']:,}** hours missing from the EIA feed, caught by a dbt test\n"
-        f"- {h.get('data_tests', 89)} data tests and {h.get('unit_tests', 7)} unit tests run on every dbt build\n"
+        f"- {h.get('data_tests', 99)} data tests and {h.get('unit_tests', 8)} unit tests run on every dbt build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
     miss = data["missing"]

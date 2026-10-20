@@ -16,5 +16,9 @@ sources:
         description: >
           Hourly ERCOT net generation by fuel type from EIA (fuel-type-data), respondent = ERCO. MWh.
           Battery storage is negative while charging.
+      - name: model_demand_forecast_hourly
+        description: >
+          Hourly demand predictions from our own model (src/forecast), backtested month by month. Written to
+          the lake after the main dbt build; read by the models tagged `forecast`.
       - name: weather_hourly
         description: Hourly Open-Meteo weather for 9 Texas cities, one or more per ERCOT weather zone (UTC).

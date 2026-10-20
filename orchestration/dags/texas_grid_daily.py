@@ -1,9 +1,12 @@
 """Daily Texas grid + weather pipeline.
 
     ingest_grid ───┐
-    ingest_zones ──┤                                                            ┌─► report
-    ingest_fuel ───┼─► upload_to_s3 (skipped if S3 not configured) ─► dbt_build ─┤
-    ingest_weather ┘                                                            └─► export_dashboard
+    ingest_zones ──┤
+    ingest_fuel ───┼─► upload_to_s3 (skipped if S3 not configured) ─► dbt_build ─► forecast
+    ingest_weather ┘
+                                                        ┌─► report
+      ─► upload_forecast (skipped if no S3) ─► dbt_build_forecast ─┤
+                                                        └─► export_dashboard
 
 Each task shells out to the same CLI commands you run by hand, so the
 pipeline behaves identically in Airflow and in a terminal.
@@ -84,6 +87,30 @@ with DAG(
         trigger_rule="none_failed",  # run even when the S3 upload was skipped
     )
 
+    # Our demand model: backtests new and recent months and writes predictions to the lake.
+    forecast = BashOperator(
+        task_id="forecast",
+        bash_command=f"{PY} -m src.forecast",
+        cwd=PROJECT_DIR,
+    )
+
+    upload_forecast = BashOperator(
+        task_id="upload_forecast",
+        bash_command=(
+            'if [ -z "${S3_BUCKET:-}" ]; then echo "S3_BUCKET not set - skipping upload"; exit 99; fi; '
+            f"{PY} -m src.storage.s3_sync"
+        ),
+        cwd=PROJECT_DIR,
+    )
+
+    # Second dbt stage: the models tagged `forecast`, which read the predictions just written.
+    dbt_build_forecast = BashOperator(
+        task_id="dbt_build_forecast",
+        bash_command=f"{PY} -m src.run_dbt --target {DBT_TARGET} --stage forecast",
+        cwd=PROJECT_DIR,
+        trigger_rule="none_failed",
+    )
+
     report = BashOperator(
         task_id="report",
         bash_command=f"{PY} -m src.report",
@@ -96,7 +123,8 @@ with DAG(
         cwd=PROJECT_DIR,
     )
 
-    [ingest_grid, ingest_zones, ingest_fuel, ingest_weather] >> upload_to_s3 >> dbt_build >> [report, export_dashboard]
+    [ingest_grid, ingest_zones, ingest_fuel, ingest_weather] >> upload_to_s3 >> dbt_build >> forecast
+    forecast >> upload_forecast >> dbt_build_forecast >> [report, export_dashboard]
 
 
 with DAG(

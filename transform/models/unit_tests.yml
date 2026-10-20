@@ -140,3 +140,19 @@ unit_tests:
       rows:
         - {date_local: "2024-12-25", baseline_days: 3, baseline_demand_mwh: 50000, demand_change_pct: -20.0}
         - {date_local: "2025-01-01", baseline_days: 2, baseline_demand_mwh: 50000, demand_change_pct: -40.0}
+
+  - name: forecast_accuracy_scores_only_shared_hours
+    description: >
+      Both forecasts are scored on the same hours: an hour missing ERCOT's forecast, or inside the
+      Uri load-shed window, is left out for both.
+    model: agg_forecast_accuracy_monthly
+    given:
+      - input: ref('fct_forecast_hourly')
+        rows:
+          - {date_local: "2024-07-01", hour_local: 16, actual_mwh: 100, eia_forecast_mwh: 110, model_forecast_mwh: 95,  model_abs_pct_error: 0.05, eia_abs_pct_error: 0.10, model_error_mwh: -5, eia_error_mwh: 10, is_load_shed: false}
+          - {date_local: "2024-07-01", hour_local: 3,  actual_mwh: 100, eia_forecast_mwh: 99,  model_forecast_mwh: 103, model_abs_pct_error: 0.03, eia_abs_pct_error: 0.01, model_error_mwh: 3,  eia_error_mwh: -1, is_load_shed: false}
+          - {date_local: "2024-07-02", hour_local: 3,  actual_mwh: 100, eia_forecast_mwh: null, model_forecast_mwh: 150, model_abs_pct_error: 0.50, eia_abs_pct_error: null, model_error_mwh: 50, eia_error_mwh: null, is_load_shed: false}
+          - {date_local: "2024-07-03", hour_local: 3,  actual_mwh: 100, eia_forecast_mwh: 200, model_forecast_mwh: 200, model_abs_pct_error: 1.0, eia_abs_pct_error: 1.0, model_error_mwh: 100, eia_error_mwh: 100, is_load_shed: true}
+    expect:
+      rows:
+        - {month: "2024-07-01", hours: 2, model_mape_pct: 4.0, eia_mape_pct: 5.5, model_peak_mape_pct: 5.0, eia_peak_mape_pct: 10.0, model_better_share: 0.5}

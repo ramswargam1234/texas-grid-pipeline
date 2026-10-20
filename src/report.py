@@ -108,6 +108,18 @@ def main() -> None:
     if hol:
         print("Biggest holiday dip: " + ", ".join(f"{n} {c:+.1f}%" for n, c in hol)
               + " vs same weekday nearby (agg_holiday_summary)")
+    has_fc = con.sql("select count(*) from information_schema.tables "
+                     "where table_name = 'fct_forecast_hourly'").fetchone()[0]
+    if has_fc:
+        fc = con.sql("""select count(*), 100 * avg(model_abs_pct_error), 100 * avg(eia_abs_pct_error),
+                               100 * avg(model_abs_pct_error) filter (where hour_local between 15 and 19),
+                               100 * avg(eia_abs_pct_error)   filter (where hour_local between 15 and 19)
+                        from fct_forecast_hourly
+                        where actual_mwh is not null and eia_forecast_mwh is not null
+                          and model_forecast_mwh is not null and not is_load_shed""").fetchone()
+        if fc and fc[0]:
+            print(f"Our demand model   : {fc[1]:.2f}% MAPE vs ERCOT {fc[2]:.2f}% over {fc[0]:,} backtest hours; "
+                  f"3-7 PM peak {fc[3]:.2f}% vs {fc[4]:.2f}% (uses observed weather: best case until t2r)")
     print(f"Missing grid hours : {missing:,} (see dq_grid_missing_hours)")
     print()
 

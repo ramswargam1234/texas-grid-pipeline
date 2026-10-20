@@ -34,3 +34,7 @@ models:
       +materialized: table
     marts:
       +materialized: table
+    # Built in a second stage, after src/forecast writes its predictions (python -m src.run_dbt --stage forecast).
+    forecast:
+      +materialized: table
+      +tags: ["forecast"]

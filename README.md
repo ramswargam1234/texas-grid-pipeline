@@ -163,12 +163,14 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `dim_date`, `dim_zone`, `dim_series`, `dim_fuel` | 1 row / date, zone, series, fuel | Conformed dimensions shared by the fact tables; `dim_date` flags US holidays and business days |
 | `agg_holiday_effect` | 1 row / holiday date | Demand vs the same weekday 1 and 2 weeks around it (non-holidays), with the temperature difference |
 | `agg_holiday_summary` | 1 row / holiday | Median demand change per holiday across years, leaving out weather-distorted days |
+| `fct_forecast_hourly` | 1 row / hour | Actual demand vs ERCOT's day-ahead forecast vs our model (forecast stage) |
+| `agg_forecast_accuracy_monthly` | 1 row / month | MAPE, bias and 3–7 PM peak MAPE for our model and ERCOT on the same hours |
 | `agg_zone_profile` | 1 row / zone | Share of energy, peak, and heat sensitivity (MWh and % per °F above 75°F) |
 | `agg_zone_heat_trend` | 1 row / zone / year | Heat sensitivity per year with 95% confidence intervals, fit on daily averages for days ≥ 75°F |
 | `rpt_zone_heat_change` | 1 row / zone | First vs latest year; calls a change only when the two 95% intervals don't overlap |
 | `rpt_zone_heat_robustness` | 1 row / zone | Reruns that verdict with zones reconciled to ERCOT's total and with 2025 left out; `is_robust` when all agree |
 
-**Data tests (89):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
+**Data tests (99):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
 
 ## History and unit tests
 
@@ -180,7 +182,8 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
   the Uri forecast-gap math and load-shed window, season and weekend flags in `dim_date`, averaging of
   multi-city weather zones, fuel shares that leave out battery charging, the heat-trend slope and confidence
   interval on a perfect line, the rule that only calls a zone's change when the intervals don't overlap, holiday and
-  business-day flags in `dim_date`, and a holiday baseline that skips other holidays.
+  business-day flags in `dim_date`, a holiday baseline that skips other holidays, and forecast accuracy scored
+  only on hours where both forecasts exist.
 
 ## Star schema
 
@@ -270,6 +273,27 @@ days on record. `fct_uri_unserved_hourly` estimates the missing demand two indep
 
 **Result:** an estimated **~1,340 GWh** of demand went unserved over the 72 load-shed hours (forecast gap; the weather model gives ~1,900 GWh as an upper bound). The forecast peaked at **76,783 MW** during load shed, matching ERCOT's own ~76.8 GW estimate. The largest hourly gap, **28,885 MW**, exceeds the 20 GW ERCOT ordered shed, suggesting delivered power also fell from local outages and industrial cutbacks. For reference, ERCOT reported shedding up to 20 GW and estimated peak demand
 of about 76.8 GW without load shed ([S&P Global](https://www.spglobal.com/commodity-insights/en/news-research/latest-news/electric-power/022421-ercot-lost-almost-half-of-generation-capacity-in-storm-causing-20-gw-load-shed)).
+
+## Demand forecast (backtested)
+
+`src/forecast` trains a gradient-boosted model (scikit-learn `HistGradientBoostingRegressor`) on hour, day of week,
+business day / holiday, season, temperature, humidity, and demand at the same hour **2 and 7 days earlier** (information
+available the day before). It is **backtested walk-forward**: each month is predicted by a model trained only on earlier
+months, and the Uri load-shed hours are never used for training. Predictions are written to the lake like any other
+dataset (`model_demand_forecast_hourly/year=/month=`), so reruns are idempotent and only new and recent months are retrained.
+
+dbt builds in two stages because the forecast models read those predictions:
+
+```bash
+python -m src.run_dbt                    # stage 1: everything except models tagged `forecast`
+python -m src.forecast                   # train + predict (add --force to rerun the whole backtest)
+python -m src.run_dbt --stage forecast   # stage 2: fct_forecast_hourly, agg_forecast_accuracy_monthly + tests
+```
+
+`make build` runs all three. Tests check that lags only look back, that each month trains only on earlier months, and that
+load-shed hours are excluded. **Caveat:** this version uses the *observed* temperature of the forecast day, a perfect
+weather forecast, while ERCOT had to forecast the weather too. The next roadmap item scores the model with real day-ahead
+weather forecasts and splits the error into weather-forecast error vs model error.
 
 ## Finding: is each zone getting more heat-sensitive?
 

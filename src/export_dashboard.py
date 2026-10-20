@@ -167,9 +167,45 @@ def headline(con) -> dict:
         "uri": uri,
         "fuel": fuel_summary,
         "is_demo": os.getenv("PIPELINE_DEMO") == "1",
+        "forecast_model": forecast_summary(con),
         **test_counts(),
         "exported_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }
+
+
+# Built only after the forecast stage (python -m src.forecast + run_dbt --stage forecast).
+OPTIONAL_QUERIES = {
+    "forecast_compare": """
+        select month, hours, model_mape_pct, eia_mape_pct, model_peak_mape_pct, eia_peak_mape_pct,
+               model_better_share
+        from agg_forecast_accuracy_monthly
+        where hours >= 24 * 7
+        order by month
+    """,
+}
+
+
+def has_table(con, name: str) -> bool:
+    return con.sql(f"select count(*) from information_schema.tables where table_name = '{name}'").fetchone()[0] > 0
+
+
+def forecast_summary(con) -> dict:
+    """Backtest accuracy of our model vs ERCOT's forecast over all scored hours."""
+    if not has_table(con, "fct_forecast_hourly"):
+        return {}
+    row = con.sql("""
+        select count(*), 100 * avg(model_abs_pct_error), 100 * avg(eia_abs_pct_error),
+               100 * avg(model_abs_pct_error) filter (where hour_local between 15 and 19),
+               100 * avg(eia_abs_pct_error)   filter (where hour_local between 15 and 19),
+               min(date_local), max(date_local), any_value(model_version)
+        from fct_forecast_hourly
+        where actual_mwh is not null and eia_forecast_mwh is not null and model_forecast_mwh is not null
+          and not is_load_shed""").fetchone()
+    if not row or not row[0]:
+        return {}
+    keys = ["hours", "model_mape_pct", "eia_mape_pct", "model_peak_mape_pct", "eia_peak_mape_pct",
+            "first_date", "last_date", "model_version"]
+    return {k: (str(v) if k.endswith("date") else v) for k, v in zip(keys, row)}
 
 
 def test_counts() -> dict:
@@ -187,6 +223,12 @@ def main() -> None:
         raise SystemExit(f"{DB_PATH} not found. Run dbt build first.")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(str(DB_PATH), read_only=True)
+    for name, sql in OPTIONAL_QUERIES.items():
+        if not has_table(con, sql.split("from")[1].split()[0]):
+            log.info("%s: skipped (run the forecast stage to build it)", name)
+            continue
+        con.sql(sql).df().to_csv(OUT_DIR / f"{name}.csv", index=False, float_format="%.6g")
+        log.info("%s: written", name)
     for name, sql in QUERIES.items():
         df = con.sql(sql).df()
         df.to_csv(OUT_DIR / f"{name}.csv", index=False, float_format="%.6g")
