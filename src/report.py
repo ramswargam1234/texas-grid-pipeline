@@ -131,6 +131,12 @@ def main() -> None:
                   f"model {fw[2]:.2f}% + weather forecast {fw[1] - fw[2]:+.2f} pts (GFS day-ahead, "
                   f"4-city temp error {fw[4]:.1f}°F)")
     print(f"Missing grid hours : {missing:,} (see dq_grid_missing_hours)")
+    from src import freshness
+    rows = freshness.load()
+    if rows:
+        counts = {s: sum(r["status"] == s for r in rows) for s in ("pass", "warn", "error")}
+        print(f"Source freshness   : {counts['pass']} fresh, {counts['warn']} late, {counts['error']} stale "
+              f"of {len(rows)} sources (checked {rows[0]['checked_at_utc'][:16]} UTC)")
     print()
 
 

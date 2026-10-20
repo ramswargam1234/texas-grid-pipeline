@@ -3,7 +3,7 @@
 
 PY ?= .venv/bin/python
 
-.PHONY: help setup demo demo-dashboard test build forecast report dashboard backfill refresh sync
+.PHONY: help setup demo demo-dashboard test build forecast freshness report dashboard backfill refresh sync
 
 help:  ## Show this list
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -32,6 +32,9 @@ build: setup  ## dbt build on your local lake, then the forecast and its models 
 forecast: setup  ## Re-run the whole demand-forecast backtest, then its dbt models
 	$(PY) -m src.forecast --force
 	$(PY) -m src.run_dbt --stage forecast
+
+freshness: setup  ## Is every source still delivering? (age of the newest hour per source)
+	$(PY) -m src.freshness check
 
 report: setup  ## Print headline findings from the warehouse
 	$(PY) -m src.report

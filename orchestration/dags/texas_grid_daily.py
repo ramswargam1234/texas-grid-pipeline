@@ -6,8 +6,8 @@
     ingest_weather ┤
     ingest_weather_forecast ┘
                                                         ┌─► report
-      ─► upload_forecast (skipped if no S3) ─► dbt_build_forecast ─┤
-                                                        └─► export_dashboard
+      ─► upload_forecast (skipped if no S3) ─► dbt_build_forecast ─► check_freshness ─┤          ├─► freshness_gate
+                                                        └─► export_dashboard ┘
 
 Each task shells out to the same CLI commands you run by hand, so the
 pipeline behaves identically in Airflow and in a terminal.
@@ -118,6 +118,20 @@ with DAG(
         trigger_rule="none_failed",
     )
 
+    check_freshness = BashOperator(
+        task_id="check_freshness",
+        bash_command=f"{PY} -m src.freshness check",
+        cwd=PROJECT_DIR,
+    )
+
+    # Last: fails the run (and Airflow's alerting) if a source stopped delivering, after the dashboard refreshed.
+    freshness_gate = BashOperator(
+        task_id="freshness_gate",
+        bash_command=f"{PY} -m src.freshness gate",
+        cwd=PROJECT_DIR,
+        retries=0,
+    )
+
     report = BashOperator(
         task_id="report",
         bash_command=f"{PY} -m src.report",
@@ -131,7 +145,8 @@ with DAG(
     )
 
     [ingest_grid, ingest_zones, ingest_fuel, ingest_weather, ingest_weather_forecast] >> upload_to_s3 >> dbt_build >> forecast
-    forecast >> upload_forecast >> dbt_build_forecast >> [report, export_dashboard]
+    forecast >> upload_forecast >> dbt_build_forecast >> check_freshness >> [report, export_dashboard]
+    [report, export_dashboard] >> freshness_gate
 
 
 with DAG(

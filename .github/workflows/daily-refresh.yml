@@ -75,6 +75,9 @@ jobs:
       - name: dbt build, forecast stage (model vs ERCOT forecast)
         run: python -m src.run_dbt --stage forecast
 
+      - name: Check data freshness (results go on the dashboard; the last step fails if a source is stale)
+        run: python -m src.freshness check
+
       - name: Save warehouse to S3
         run: python -m src.storage.s3_sync --state-upload
 
@@ -97,3 +100,8 @@ jobs:
           # Someone may have pushed while this job ran; replay the snapshot commit on top of it.
           git pull --rebase origin main
           git push
+
+      # Runs last so a stale source never blocks the dashboard refresh, but still turns the run red,
+      # which makes GitHub email the repo owner.
+      - name: Fail if a data source stopped delivering
+        run: python -m src.freshness gate

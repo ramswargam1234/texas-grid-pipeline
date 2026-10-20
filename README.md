@@ -309,6 +309,20 @@ actually happened (the model's own error) and with the **day-ahead weather forec
 hours: the part of the error caused by the weather forecast being wrong. The forecast-weather version is the fair
 comparison with ERCOT's day-ahead forecast.
 
+## Data freshness alerts
+
+Every source has a freshness rule in `transform/models/staging/_sources.yml`, set from its normal delay: EIA data
+warns after 2 days and errors after 4; observed weather (the archive trails by ~6 days) after 9 and 14; day-ahead
+weather forecasts and our predictions after 3 and 7. The daily run checks them with dbt source freshness in two steps:
+
+```bash
+python -m src.freshness check   # saves results; they appear on the dashboard and in the report
+python -m src.freshness gate    # last step of the run: exits 1 if any source is past its error threshold
+```
+
+The gate runs **after** the dashboard is refreshed, so one stale API never blocks the rest of the update, but the run
+still turns red and GitHub emails an alert. The same pair runs as the last two Airflow tasks.
+
 ## Finding: is each zone getting more heat-sensitive?
 
 `agg_zone_heat_trend` fits heat sensitivity for each of ERCOT's 8 weather zones and each year, on **daily** averages

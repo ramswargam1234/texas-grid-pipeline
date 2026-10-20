@@ -25,7 +25,7 @@ STAGES = {"main": ["--exclude", "tag:forecast"], "forecast": ["--select", "tag:f
 
 
 def run(command: str = "build", target: str = "dev", stage: str = "main") -> bool:
-    args = [command, "--profiles-dir", ".", "--target", target, *STAGES[stage]]
+    args = [*command.split(), "--profiles-dir", ".", "--target", target, *STAGES[stage]]
     # Warehouse file and raw lake follow DATA_DIR, so the demo can build in its own folder.
     os.environ.setdefault("DBT_DUCKDB_PATH", str(config.DATA_DIR / "warehouse.duckdb"))
     if target == "cloud":

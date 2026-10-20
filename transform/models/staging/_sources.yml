@@ -3,26 +3,58 @@ version: 2
 sources:
   - name: raw
     description: Partitioned Parquet files written by the Python ingestion layer (src/ingestion).
+    # Freshness: `python -m src.freshness check` flags a source whose newest hour is too old, i.e. the API
+    # stopped sending data. Thresholds follow each source's normal delay (see each table's config).
     meta:
       external_location: "read_parquet('{{ var(\"raw_dir\") }}/{name}/*/*/*.parquet', hive_partitioning = true)"
     tables:
       - name: eia_ercot_hourly
+        config:
+          loaded_at_field: period_utc
+          freshness:
+            warn_after: {count: 2, period: day}
+            error_after: {count: 4, period: day}
         description: >
           Hourly ERCOT data from the EIA API, one row per (hour, type).
           Types: D = demand, DF = day-ahead demand forecast, NG = net generation. Values in MWh.
       - name: eia_ercot_zone_hourly
+        config:
+          loaded_at_field: period_utc
+          freshness:
+            warn_after: {count: 2, period: day}
+            error_after: {count: 4, period: day}
         description: Hourly demand per ERCOT weather zone from EIA (region-sub-ba-data), parent = ERCO. MWh.
       - name: eia_ercot_fuel_hourly
+        config:
+          loaded_at_field: period_utc
+          freshness:
+            warn_after: {count: 2, period: day}
+            error_after: {count: 4, period: day}
         description: >
           Hourly ERCOT net generation by fuel type from EIA (fuel-type-data), respondent = ERCO. MWh.
           Battery storage is negative while charging.
       - name: model_demand_forecast_hourly
+        config:
+          loaded_at_field: period_utc
+          freshness:
+            warn_after: {count: 3, period: day}
+            error_after: {count: 7, period: day}
         description: >
           Hourly demand predictions from our own model (src/forecast), backtested month by month. Written to
           the lake after the main dbt build; read by the models tagged `forecast`.
       - name: weather_forecast_hourly
+        config:
+          loaded_at_field: period_utc
+          freshness:
+            warn_after: {count: 3, period: day}
+            error_after: {count: 7, period: day}
         description: >
           Archived day-ahead weather forecasts (Open-Meteo Previous Runs API, GFS, issued 24 hours before each
           hour) for the same 9 cities. Fahrenheit, UTC. From April 2021.
       - name: weather_hourly
+        config:
+          loaded_at_field: period_utc
+          freshness:
+            warn_after: {count: 9, period: day}
+            error_after: {count: 14, period: day}
         description: Hourly Open-Meteo weather for 9 Texas cities, one or more per ERCOT weather zone (UTC).

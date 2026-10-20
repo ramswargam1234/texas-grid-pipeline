@@ -244,6 +244,12 @@ def main() -> None:
         df = con.sql(sql).df()
         df.to_csv(OUT_DIR / f"{name}.csv", index=False, float_format="%.6g")
         log.info("%s: %d rows", name, len(df))
+    from src import freshness  # last dbt source-freshness results, if the check has run
+    rows = [] if os.getenv("PIPELINE_DEMO") == "1" else freshness.load()  # demo data is old by design
+    if rows:
+        import pandas as pd
+        pd.DataFrame(rows).to_csv(OUT_DIR / "freshness.csv", index=False)
+        log.info("freshness: %d sources", len(rows))
     (OUT_DIR / "headline.json").write_text(json.dumps(headline(con), indent=2, default=str))
     log.info("Snapshot written to %s", OUT_DIR)
 

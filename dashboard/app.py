@@ -54,6 +54,7 @@ def load(snapshot_version: float):
         "heat_change": (csv("zone_heat_change") if (SNAPSHOT / "zone_heat_change.csv").exists() else pd.DataFrame()),
         "forecast_compare": (csv("forecast_compare", parse_dates=["month"])
                              if (SNAPSHOT / "forecast_compare.csv").exists() else pd.DataFrame()),
+        "freshness": csv("freshness") if (SNAPSHOT / "freshness.csv").exists() else pd.DataFrame(),
         "holidays": csv("holidays") if (SNAPSHOT / "holidays.csv").exists() else pd.DataFrame(),
         "fuel_monthly": (csv("fuel_monthly", parse_dates=["month"])
                          if (SNAPSHOT / "fuel_monthly.csv").exists() else pd.DataFrame()),
@@ -464,6 +465,25 @@ with right:
         f"- {h.get('data_tests', 104)} data tests and {h.get('unit_tests', 9)} unit tests run on every dbt build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
+    fr = data["freshness"]
+    if not fr.empty:
+        labels = {"pass": "✅ Fresh", "warn": "⚠️ Late", "error": "❌ Stale", "runtime error": "❌ Check failed"}
+        names = {"eia_ercot_hourly": "EIA grid (demand, forecast, generation)", "eia_ercot_zone_hourly": "EIA zone demand",
+                 "eia_ercot_fuel_hourly": "EIA fuel mix", "weather_hourly": "Weather (observed)",
+                 "weather_forecast_hourly": "Weather (day-ahead forecasts)",
+                 "model_demand_forecast_hourly": "Our demand forecast"}
+        n_ok = int((fr["status"] == "pass").sum())
+        st.markdown(f"**Source freshness:** {n_ok} of {len(fr)} sources up to date "
+                    f"(checked {str(fr['checked_at_utc'].iloc[0])[:10]})")
+        st.dataframe(pd.DataFrame({
+            "Source": fr["source"].map(names).fillna(fr["source"]),
+            "Status": fr["status"].map(labels).fillna(fr["status"]),
+            "Newest hour (UTC)": pd.to_datetime(fr["latest_data_utc"]).dt.strftime("%b %d, %H:00"),
+            "Age": (fr["age_hours"] / 24).round(1).astype(str) + " days",
+        }), hide_index=True, width="stretch")
+        st.caption("Each source is flagged late, then stale, when its newest hour is older than its usual delay "
+                   "allows (EIA: 2 and 4 days; observed weather: 9 and 14). A stale source fails the daily run, "
+                   "which emails an alert.")
     miss = data["missing"]
     if not miss.empty:
         with st.expander("Missing hours by month"):
@@ -473,5 +493,6 @@ with right:
 with st.expander("View daily data as a table"):
     st.dataframe(view.sort_values("date_local", ascending=False), hide_index=True, width="stretch")
 
-st.caption("Data: U.S. Energy Information Administration (EIA) Open Data · Open-Meteo Historical Weather API. "
+st.caption("Data: U.S. Energy Information Administration (EIA) Open Data · Open-Meteo Historical Weather and "
+           "Previous Runs APIs. "
            "Demand values are hourly ERCOT load in MWh; times are US Central.")
