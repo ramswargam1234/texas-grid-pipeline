@@ -82,4 +82,6 @@ jobs:
             exit 0
           fi
           git commit -m "Daily refresh: dashboard snapshot $(date -u +%F)"
+          # Someone may have pushed while this job ran; replay the snapshot commit on top of it.
+          git pull --rebase origin main
           git push
