@@ -54,3 +54,17 @@ models:
 
   - name: agg_uri_summary
     description: One-row summary of estimated unserved energy (GWh) and peak shortfall during Uri.
+
+  - name: fct_zone_hourly
+    description: One row per hour and ERCOT weather zone, with zone demand and that zone's local temperature.
+    columns:
+      - name: zone_code
+        data_tests: [not_null]
+
+  - name: agg_zone_profile
+    description: >
+      One row per ERCOT weather zone: share of energy, peak, and temperature sensitivity
+      (MWh and % of the zone's average demand per °F above 75°F).
+    columns:
+      - name: zone_code
+        data_tests: [unique, not_null]

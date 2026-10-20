@@ -45,6 +45,9 @@ jobs:
       - name: Load latest grid data (EIA)
         run: python -m src.ingestion.eia_demand --days 7
 
+      - name: Load latest zone demand (EIA)
+        run: python -m src.ingestion.eia_zones --days 7
+
       - name: Load latest weather (Open-Meteo)
         run: python -m src.ingestion.weather --days 14
 

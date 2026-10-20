@@ -10,5 +10,7 @@ sources:
         description: >
           Hourly ERCOT data from the EIA API, one row per (hour, type).
           Types: D = demand, DF = day-ahead demand forecast, NG = net generation. Values in MWh.
+      - name: eia_ercot_zone_hourly
+        description: Hourly demand per ERCOT weather zone from EIA (region-sub-ba-data), parent = ERCO. MWh.
       - name: weather_hourly
-        description: Hourly Open-Meteo weather for Dallas, Houston, Austin and San Antonio (UTC).
+        description: Hourly Open-Meteo weather for 9 Texas cities, one or more per ERCOT weather zone (UTC).

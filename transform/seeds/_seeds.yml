@@ -1,0 +1,17 @@
+version: 2
+
+seeds:
+  - name: ercot_zone_cities
+    description: >
+      Maps each ERCOT weather zone (EIA sub-balancing authority code) to the city or cities whose
+      weather represents it. South Central uses the average of Austin and San Antonio.
+    config:
+      column_types:
+        zone_code: varchar
+        zone_label: varchar
+        weather_city: varchar
+    columns:
+      - name: zone_code
+        data_tests: [not_null]
+      - name: weather_city
+        data_tests: [unique, not_null]

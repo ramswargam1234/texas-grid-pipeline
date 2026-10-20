@@ -43,6 +43,7 @@ def load(snapshot_version: float):
         "forecast": csv("forecast_monthly", parse_dates=["month"]),
         "freeze": csv("freeze_2021", parse_dates=["period_local"]),
         "missing": csv("missing_by_month", parse_dates=["month"]),
+        "zones": csv("zones") if (SNAPSHOT / "zones.csv").exists() else pd.DataFrame(),
     }
 
 
@@ -78,7 +79,8 @@ daily = daily[daily["hours_with_demand"] >= 20]
 st.title("⚡ Texas Grid & Weather")
 st.markdown(
     f"How weather drives electricity demand on the Texas grid (ERCOT). "
-    f"Hourly demand from the U.S. EIA joined with weather for Dallas, Houston, Austin and San Antonio, "
+    f"Hourly demand from the U.S. EIA joined with weather for Dallas, Houston, Austin and San Antonio "
+    f"(plus one city per ERCOT weather zone), "
     f"**{h['first_date']} → {h['last_date']}**. "
     f"Built with Python, AWS S3, dbt, DuckDB and Airflow. [Source code]({REPO_URL})"
 )
@@ -219,6 +221,42 @@ else:
         "of day on cold winter hours (Dec–Feb, below 50°F), excluding Feb 8–21, 2021."
     )
 
+# ---------- 4b. ERCOT weather zones ----------
+zones = data["zones"]
+if not zones.empty:
+    st.subheader("Which parts of Texas are most heat-sensitive?")
+    st.markdown(
+        "ERCOT splits its load into 8 weather zones. Each zone's demand is matched with its own local weather "
+        "(for example Midland for the Permian Basin, Corpus Christi for the Southern zone). Heat sensitivity "
+        "is shown as a **% of the zone's own average demand per °F above 75°F**, so large and small zones compare fairly."
+    )
+    zl, zr = st.columns(2)
+    with zl:
+        z = zones.sort_values("heat_slope_pct_per_f")
+        fig = px.bar(z, x="heat_slope_pct_per_f", y="zone_label", orientation="h",
+                     custom_data=["heat_slope_mwh_per_f", "share_of_energy"])
+        fig.update_traces(marker_color=BLUE, marker_line_width=0,
+                          hovertemplate="<b>%{y}</b><br>+%{x:.2f}% of avg demand per °F<br>"
+                                        "+%{customdata[0]:,.0f} MWh per °F<br>"
+                                        "%{customdata[1]:.0%} of ERCOT energy<extra></extra>")
+        fig.update_layout(bargap=0.25)
+        fig = style(fig, height=360, x_title="Extra demand per °F above 75°F (% of zone average)")
+        fig.update_layout(hovermode="closest")
+        chart(fig, width="stretch")
+    with zr:
+        z = zones.sort_values("share_of_energy")
+        fig = px.bar(z, x="share_of_energy", y="zone_label", orientation="h",
+                     custom_data=["peak_demand_mwh"])
+        fig.update_traces(marker_color=MUTED, marker_line_width=0,
+                          hovertemplate="<b>%{y}</b><br>%{x:.1%} of ERCOT energy<br>"
+                                        "Peak %{customdata[0]:,.0f} MWh<extra></extra>")
+        fig.update_layout(bargap=0.25)
+        fig = style(fig, height=360, x_title="Share of ERCOT energy, 2021 to today")
+        fig.update_xaxes(tickformat=".0%")
+        fig.update_layout(hovermode="closest")
+        chart(fig, width="stretch")
+    st.caption("A dbt test checks every hour that the 8 zones add up to ERCOT's total (within 3%).")
+
 # ---------- 5. forecast accuracy + data quality ----------
 left, right = st.columns(2)
 with left:
@@ -235,7 +273,7 @@ with right:
     st.markdown(
         f"- **{h['rows_modeled']:,}** rows modeled across **{h['hours']:,}** hours\n"
         f"- **{h['missing_hours']:,}** hours missing from the EIA feed, caught by a dbt test\n"
-        f"- 22 automated dbt tests run on every build\n"
+        f"- 33 automated dbt tests run on every build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
     miss = data["missing"]

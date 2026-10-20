@@ -1,0 +1,10 @@
+zone_code,zone_label,weather_city
+COAS,Coast (Houston),houston
+EAST,East (Tyler),tyler
+FWES,Far West (Permian Basin),midland
+NCEN,North Central (Dallas-Fort Worth),dallas
+NRTH,North (Wichita Falls),wichita_falls
+SCEN,South Central (Austin-San Antonio),austin
+SCEN,South Central (Austin-San Antonio),san_antonio
+SOUT,Southern (Corpus Christi),corpus_christi
+WEST,West (Abilene),abilene

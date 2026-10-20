@@ -1,6 +1,7 @@
 """Daily Texas grid + weather pipeline.
 
-    ingest_grid ──┐                                                            ┌─► report
+    ingest_grid ───┐
+    ingest_zones ──┤                                                            ┌─► report
                   ├─► upload_to_s3 (skipped if S3 not configured) ─► dbt_build ─┤
     ingest_weather┘                                                            └─► export_dashboard
 
@@ -48,6 +49,12 @@ with DAG(
         cwd=PROJECT_DIR,
     )
 
+    ingest_zones = BashOperator(
+        task_id="ingest_zones",
+        bash_command=f"{PY} -m src.ingestion.eia_zones --days 7",
+        cwd=PROJECT_DIR,
+    )
+
     ingest_weather = BashOperator(
         task_id="ingest_weather",
         bash_command=f"{PY} -m src.ingestion.weather --days 14",
@@ -83,7 +90,7 @@ with DAG(
         cwd=PROJECT_DIR,
     )
 
-    [ingest_grid, ingest_weather] >> upload_to_s3 >> dbt_build >> [report, export_dashboard]
+    [ingest_grid, ingest_zones, ingest_weather] >> upload_to_s3 >> dbt_build >> [report, export_dashboard]
 
 
 with DAG(
@@ -100,6 +107,12 @@ with DAG(
     grid = BashOperator(
         task_id="backfill_grid",
         bash_command=f"{PY} -m src.ingestion.eia_demand --start {{{{ params.start }}}}",
+        cwd=PROJECT_DIR,
+        execution_timeout=timedelta(hours=3),
+    )
+    zones = BashOperator(
+        task_id="backfill_zones",
+        bash_command=f"{PY} -m src.ingestion.eia_zones --start {{{{ params.start }}}}",
         cwd=PROJECT_DIR,
         execution_timeout=timedelta(hours=3),
     )
@@ -122,4 +135,4 @@ with DAG(
         cwd=PROJECT_DIR,
         trigger_rule="none_failed",
     )
-    [grid, weather] >> sync >> build
+    [grid, zones, weather] >> sync >> build

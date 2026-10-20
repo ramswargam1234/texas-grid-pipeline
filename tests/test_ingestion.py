@@ -125,3 +125,24 @@ def test_get_json_hides_api_key_on_client_error():
     with pytest.raises(RuntimeError) as err:
         get_json(session, "u", {}, 5, sleep=lambda s: None)
     assert "SECRET123" not in str(err.value) and "api_key=***" in str(err.value)
+
+
+# ---------- EIA zones ----------
+
+def test_eia_zones_parse_and_paginate(monkeypatch):
+    from src.ingestion import eia_zones
+    monkeypatch.setattr(config, "EIA_API_KEY", "test-key")
+
+    def zrow(period, code, value):
+        return {"period": period, "subba": code, "subba-name": code + " zone", "parent": "ERCO",
+                "parent-name": "ERCOT", "value": value, "value-units": "megawatthours"}
+
+    page1 = {"response": {"total": "3", "data": [zrow("2024-07-01T20", "COAS", "21000"),
+                                                  zrow("2024-07-01T20", "NCEN", "24000")]}}
+    page2 = {"response": {"total": "3", "data": [zrow("2024-07-01T20", "FWES", "6000")]}}
+    session = FakeSession([page1, page2])
+    df = eia_zones.fetch_range(date(2024, 7, 1), date(2024, 7, 1), session=session)
+    assert sorted(df["zone_code"]) == ["COAS", "FWES", "NCEN"]
+    assert df["demand_mwh"].sum() == 51000.0
+    assert session.calls[0]["facets[parent][]"] == "ERCO"
+    assert [c["offset"] for c in session.calls] == [0, 2]

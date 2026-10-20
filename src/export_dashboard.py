@@ -61,6 +61,13 @@ QUERIES = {
         from fct_uri_unserved_hourly
         order by period_local
     """,
+    # One row per ERCOT weather zone: share of energy and temperature sensitivity.
+    "zones": """
+        select zone_code, zone_label, hours, avg_demand_mwh, peak_demand_mwh, share_of_energy,
+               heat_slope_mwh_per_f, heat_slope_pct_per_f, cold_slope_mwh_per_f, heat_r2
+        from agg_zone_profile
+        order by share_of_energy desc
+    """,
     # Data-quality: missing demand hours per month.
     "missing_by_month": """
         select date_trunc('month', date_local)::date as month, count(*) as missing_hours

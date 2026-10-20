@@ -5,11 +5,12 @@
 
 **Live dashboard:** https://texas-grid-ram.streamlit.app
 
-An end-to-end data pipeline that joins **hourly Texas power grid (ERCOT) demand** with **hourly weather for Dallas, Houston, Austin and San Antonio** to answer:
+An end-to-end data pipeline that joins **hourly Texas power grid (ERCOT) demand** with **hourly weather for 9 Texas cities** to answer:
 
 - How much does temperature drive Texas electricity demand?
 - When is the grid under the most stress, and how good is the day-ahead forecast?
 - What happened to demand during extreme weather events (e.g., heat waves, the Feb 2021 freeze)?
+- Which of ERCOT's 8 weather zones are most sensitive to heat?
 
 ## Architecture (target)
 
@@ -40,10 +41,12 @@ python -m src.sample_data       # optional: synthetic data lake, no API keys nee
 
 # Backfill (safe to re-run: retries on server errors, skips months already loaded)
 python -m src.ingestion.eia_demand --start 2021-01-01
+python -m src.ingestion.eia_zones  --start 2021-01-01
 python -m src.ingestion.weather    --start 2021-01-01
 
 # Daily refresh
 python -m src.ingestion.eia_demand --days 7
+python -m src.ingestion.eia_zones  --days 7
 python -m src.ingestion.weather    --days 14
 
 # Upload new/changed files to S3
@@ -78,7 +81,7 @@ docker compose down              # stop
 
 | DAG | Schedule | Tasks |
 |---|---|---|
-| `texas_grid_daily` | 7:00 AM Central | `ingest_grid` + `ingest_weather` → `upload_to_s3` → `dbt_build` → `report` + `export_dashboard` |
+| `texas_grid_daily` | 7:00 AM Central | `ingest_grid` + `ingest_zones` + `ingest_weather` → `upload_to_s3` → `dbt_build` → `report` + `export_dashboard` |
 | `texas_grid_backfill` | manual (param: `start`) | backfill both sources → `upload_to_s3` → `dbt_build` |
 
 - Retries with exponential backoff on every task; one run at a time (`max_active_runs=1`).
@@ -134,8 +137,10 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `dq_grid_missing_hours` | 1 row / missing hour | Gaps in the EIA feed |
 | `fct_uri_unserved_hourly` | 1 row / hour, Feb 8–21 2021 | Forecast, weather-model and actual demand during Winter Storm Uri |
 | `agg_uri_summary` | 1 row | Estimated unserved energy (GWh) during the blackouts |
+| `fct_zone_hourly` | 1 row / hour / zone | Demand in each of ERCOT's 8 weather zones, joined to that zone's own weather |
+| `agg_zone_profile` | 1 row / zone | Share of energy, peak, and heat sensitivity (MWh and % per °F above 75°F) |
 
-**Data tests (22):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, and a completeness check on the 72 Uri load-shed hours.
+**Data tests (33):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, and a check that the 8 weather zones add up to ERCOT's total within 3%.
 
 ## Finding: demand that went unserved during Winter Storm Uri
 
@@ -150,11 +155,20 @@ days on record. `fct_uri_unserved_hourly` estimates the missing demand two indep
 **Result:** an estimated **~1,340 GWh** of demand went unserved over the 72 load-shed hours (forecast gap; the weather model gives ~1,900 GWh as an upper bound). The forecast peaked at **76,783 MW** during load shed, matching ERCOT's own ~76.8 GW estimate. The largest hourly gap, **28,885 MW**, exceeds the 20 GW ERCOT ordered shed, suggesting delivered power also fell from local outages and industrial cutbacks. For reference, ERCOT reported shedding up to 20 GW and estimated peak demand
 of about 76.8 GW without load shed ([S&P Global](https://www.spglobal.com/commodity-insights/en/news-research/latest-news/electric-power/022421-ercot-lost-almost-half-of-generation-capacity-in-storm-causing-20-gw-load-shed)).
 
+## Known data issue: zone totals in 2025
+
+`assert_zones_sum_to_ercot_total` checks every hour that ERCOT's 8 weather zones add up to its total demand.
+2021–2023 reconcile almost perfectly. In 2025, the zones sum to roughly **4–5% more** than the total in about
+7–20% of hours each month (never less), with no missing zones. This is a difference between EIA's two published
+datasets, not a pipeline error, so the test warns rather than fails. Zone heat-sensitivity is measured against
+each zone's own history and isn't affected. The newest hours sometimes lack a zone until EIA finishes publishing.
+
 ## Data layout
 
 ```
 data/raw/
-  eia_ercot_hourly/year=YYYY/month=MM/data.parquet   # demand (D), forecast (DF), net generation (NG), MWh
+  eia_ercot_hourly/year=YYYY/month=MM/data.parquet       # demand (D), forecast (DF), net generation (NG), MWh
+  eia_ercot_zone_hourly/year=YYYY/month=MM/data.parquet  # demand per ERCOT weather zone, MWh
   weather_hourly/year=YYYY/month=MM/data.parquet     # temp_f, feels_like_f, humidity_pct per city
 ```
 

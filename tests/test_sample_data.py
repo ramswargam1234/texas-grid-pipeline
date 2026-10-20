@@ -3,8 +3,9 @@ from src.sample_data import build
 
 
 def test_sample_lake_shapes():
-    wx, grid = build()
-    assert set(wx["city"]) == {"dallas", "houston", "austin", "san_antonio"}
+    wx, grid, zones = build()
+    assert {"dallas", "houston", "austin", "san_antonio", "midland"} <= set(wx["city"])
+    assert zones["zone_code"].nunique() == 8
     assert set(grid["type"]) == {"D", "DF", "NG"}
     # Covers a winter (for the Uri weather model) and a summer (for heat metrics).
     months = set(grid["period_utc"].dt.month)

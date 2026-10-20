@@ -67,6 +67,12 @@ def main() -> None:
           f"over {uri[4]} load-shed hours")
     print(f"Uri max shortfall  : {fmt(uri[2])} MWh in one hour (forecast gap); "
           f"{uri[3]} hours colder than any training hour")
+    zones = con.sql("select zone_label, share_of_energy, heat_slope_pct_per_f from agg_zone_profile "
+                    "order by heat_slope_pct_per_f desc").fetchall()
+    if zones:
+        top, bottom = zones[0], zones[-1]
+        print(f"Zones              : {len(zones)}; most heat-sensitive {top[0]} (+{top[2]:.2f}%/°F), "
+              f"least {bottom[0]} (+{bottom[2]:.2f}%/°F)")
     print(f"Missing grid hours : {missing:,} (see dq_grid_missing_hours)")
     print()
 

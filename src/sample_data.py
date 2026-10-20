@@ -15,7 +15,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from src.ingestion import config, eia_demand, weather
+from src.ingestion import config, eia_demand, eia_zones, weather
 from src.ingestion.common import write_monthly
 
 log = logging.getLogger("sample_data")
@@ -23,9 +23,12 @@ log = logging.getLogger("sample_data")
 START, END = "2020-12-01", "2021-08-31 23:00"
 SHED_START, SHED_END = pd.Timestamp("2021-02-15 01:00"), pd.Timestamp("2021-02-18 01:00")
 SIMULATED_SHED_MW = 15_000
+# Zone code -> (share of ERCOT load, temperature offset of its reference city in °F).
+ZONES = {"COAS": (0.27, 2), "NCEN": (0.30, 0), "SCEN": (0.15, 2), "FWES": (0.08, -1),
+         "SOUT": (0.08, 4), "EAST": (0.04, -1), "NRTH": (0.03, -3), "WEST": (0.05, -2)}
 
 
-def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame]:
+def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     rng = np.random.default_rng(seed)
     hours = pd.date_range(START, END, freq="h", tz="UTC")
     local = hours.tz_convert("America/Chicago").tz_localize(None)
@@ -38,7 +41,9 @@ def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame]:
     base = np.where(freeze, base - 30, base)
 
     wx = []
-    for city, offset in [("dallas", 0), ("houston", 2), ("austin", 1), ("san_antonio", 3)]:
+    for city, offset in [("dallas", 0), ("houston", 2), ("austin", 1), ("san_antonio", 3),
+                         ("midland", -1), ("abilene", -2), ("wichita_falls", -3), ("tyler", -1),
+                         ("corpus_christi", 4)]:
         t = base + offset + rng.normal(0, 2, len(hours))
         body = {"hourly": {"time": hours.strftime("%Y-%m-%dT%H:%M").tolist(),
                            "temperature_2m": t.round(1).tolist(),
@@ -60,14 +65,21 @@ def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame]:
         for typ, val in (("D", actual[i]), ("DF", forecast[i]), ("NG", actual[i] * 0.98)):
             rows.append({"period": period, "respondent": "ERCO", "type": typ, "type-name": typ,
                          "value": f"{val:.0f}", "value-units": "megawatthours"})
-    return pd.concat(wx, ignore_index=True), eia_demand.to_frame(rows)
+    zone_rows = []
+    for i, ts in enumerate(hours):
+        period = ts.strftime("%Y-%m-%dT%H")
+        for code, (share, _) in ZONES.items():
+            zone_rows.append({"period": period, "parent": "ERCO", "subba": code, "subba-name": code,
+                              "value": f"{actual[i] * share:.0f}", "value-units": "megawatthours"})
+    return pd.concat(wx, ignore_index=True), eia_demand.to_frame(rows), eia_zones.to_frame(zone_rows)
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    wx, grid = build()
+    wx, grid, zones = build()
     write_monthly(wx, weather.DATASET, "period_utc", config.RAW_DIR)
     write_monthly(grid, eia_demand.DATASET, "period_utc", config.RAW_DIR)
+    write_monthly(zones, eia_zones.DATASET, "period_utc", config.RAW_DIR)
     log.info("Sample lake written to %s (%d grid rows, %d weather rows)", config.RAW_DIR, len(grid), len(wx))
 
 

@@ -1,4 +1,5 @@
--- Collapses 4 cities into one Texas weather signal per hour.
+-- Collapses the 4 big metros into one statewide weather signal per hour.
+-- (Zone-level weather for the other cities is in int_weather__zone_hourly.)
 -- Cooling/heating degree-hours (base 65°F) are the standard way utilities relate weather to load.
 select
     period_utc,
@@ -15,4 +16,5 @@ select
     max(case when city = 'san_antonio' then temp_f end)     as san_antonio_temp_f,
     count(*)                                                as cities_reporting
 from {{ ref('stg_weather__hourly') }}
+where city in ('dallas', 'houston', 'austin', 'san_antonio')
 group by period_utc

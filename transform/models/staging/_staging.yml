@@ -27,6 +27,22 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ['dallas', 'houston', 'austin', 'san_antonio']
+                values: ['dallas', 'houston', 'austin', 'san_antonio', 'midland', 'abilene', 'wichita_falls', 'tyler', 'corpus_christi']
       - name: temp_f
         data_tests: [not_null]
+
+  - name: stg_eia__ercot_zone_hourly
+    description: Cleaned, de-duplicated hourly demand per ERCOT weather zone (one row per hour and zone).
+    columns:
+      - name: period_utc
+        data_tests: [not_null]
+      - name: zone_code
+        description: EIA sub-balancing-authority code for the zone.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('ercot_zone_cities')
+                field: zone_code
+      - name: demand_mwh
+        description: Zone demand for the hour, MWh.
