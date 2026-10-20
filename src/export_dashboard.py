@@ -115,9 +115,8 @@ def headline(con) -> dict:
     mape = one("select avg(abs_pct_error) * 100 from fct_grid_hourly")[0]
     missing = one("select count(*) from dq_grid_missing_hours")[0]
     fuel = con.sql("""select year, renewable_share, carbon_free_share, gas_share, coal_share
-                      from agg_fuel_yearly where generation_twh > 0 order by year""").df()
-    full_years = fuel[fuel["year"] < datetime.now(timezone.utc).year]
-    fuel_years = full_years if len(full_years) >= 2 else fuel
+                      from agg_fuel_yearly where is_full_year order by year""").df()
+    fuel_years = fuel
     fuel_summary = {}
     if len(fuel_years):
         f0, f1 = fuel_years.iloc[0], fuel_years.iloc[-1]

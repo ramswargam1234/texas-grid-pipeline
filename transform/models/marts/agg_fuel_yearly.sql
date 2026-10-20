@@ -1,12 +1,14 @@
 -- One row per year: how clean ERCOT's generation was, and the big four sources' shares.
 with hourly as (
-    select year(date_local) as year, fuel_key, is_renewable, is_carbon_free,
+    select year(date_local) as year, period_utc, fuel_key, is_renewable, is_carbon_free,
            greatest(generation_mwh, 0) as mwh
     from {{ ref('fct_fuel_hourly') }}
 )
 
 select
     year,
+    count(distinct period_utc)                                       as hours,
+    count(distinct period_utc) >= 8700                               as is_full_year,
     count(distinct fuel_key)                                         as fuel_types,
     sum(mwh) / 1e6                                                   as generation_twh,
     sum(mwh) filter (where is_renewable)   / nullif(sum(mwh), 0)     as renewable_share,
