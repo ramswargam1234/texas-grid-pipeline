@@ -8,6 +8,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only token: CI never needs to write to the repo.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

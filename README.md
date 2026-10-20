@@ -95,12 +95,28 @@ docker compose down              # stop
 
 The daily job uses its own IAM access key (stored as GitHub secrets `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, plus `EIA_API_KEY`), separate from the local development key, so either can be revoked on its own.
 
-## AWS setup
+## AWS infrastructure (Terraform)
 
-- **S3 bucket** (private, encrypted) holds the raw lake under `raw/<dataset>/year=YYYY/month=MM/`.
-- **IAM user** with a least-privilege policy ([`infra/iam_policy.json`](infra/iam_policy.json)): list the one bucket, read/write its objects, nothing else. No delete rights.
-- **Sync is incremental:** a file is uploaded only if its MD5 differs from the S3 ETag, so daily runs upload just the current month.
-- Credentials live only in `.env` (git-ignored).
+All AWS resources are defined in [`infra/terraform`](infra/terraform). They were first created by hand in the
+console, then adopted into Terraform with `import` blocks, so nothing was recreated.
+
+| Resource | Hardening |
+|---|---|
+| S3 bucket (`raw/` lake) | Public access fully blocked; ACLs disabled; SSE-S3 encryption; **HTTPS-only bucket policy**; `prevent_destroy` |
+| Versioning + lifecycle | Overwritten files kept **30 days** for rollback, then expired; stale multipart uploads cleaned up |
+| Pipeline IAM user + policy | Least privilege: list/read/write **only under `raw/`** in this one bucket; no delete; no console login |
+| Access keys | Separate keys for laptop and GitHub Actions; never in Terraform state, never in git |
+
+```bash
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars   # add your AWS account ID
+terraform init
+terraform plan      # review: imports + additions, 0 to destroy
+terraform apply
+```
+
+Other safeguards: CI runs with a read-only `GITHUB_TOKEN`; Dependabot opens weekly PRs for Python packages and
+GitHub Actions; MFA on the root account and a zero-spend budget alert.
 
 ## dbt models
 
