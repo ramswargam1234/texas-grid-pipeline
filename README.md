@@ -59,12 +59,14 @@ python -m src.ingestion.eia_demand --start 2021-01-01
 python -m src.ingestion.eia_zones  --start 2021-01-01
 python -m src.ingestion.eia_fuel   --start 2021-01-01
 python -m src.ingestion.weather    --start 2021-01-01
+python -m src.ingestion.weather_forecast --start 2021-04-01   # day-ahead weather forecasts (GFS)
 
 # Daily refresh
 python -m src.ingestion.eia_demand --days 7
 python -m src.ingestion.eia_zones  --days 7
 python -m src.ingestion.eia_fuel   --days 7
 python -m src.ingestion.weather    --days 14
+python -m src.ingestion.weather_forecast --days 10
 
 # Upload new/changed files to S3
 python -m src.storage.s3_sync
@@ -164,13 +166,13 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `agg_holiday_effect` | 1 row / holiday date | Demand vs the same weekday 1 and 2 weeks around it (non-holidays), with the temperature difference |
 | `agg_holiday_summary` | 1 row / holiday | Median demand change per holiday across years, leaving out weather-distorted days |
 | `fct_forecast_hourly` | 1 row / hour | Actual demand vs ERCOT's day-ahead forecast vs our model (forecast stage) |
-| `agg_forecast_accuracy_monthly` | 1 row / month | MAPE, bias and 3–7 PM peak MAPE for our model and ERCOT on the same hours |
+| `agg_forecast_accuracy_monthly` | 1 row / month | MAPE, bias and 3–7 PM peak MAPE for our model and ERCOT on the same hours, and the error split into model vs weather forecast |
 | `agg_zone_profile` | 1 row / zone | Share of energy, peak, and heat sensitivity (MWh and % per °F above 75°F) |
 | `agg_zone_heat_trend` | 1 row / zone / year | Heat sensitivity per year with 95% confidence intervals, fit on daily averages for days ≥ 75°F |
 | `rpt_zone_heat_change` | 1 row / zone | First vs latest year; calls a change only when the two 95% intervals don't overlap |
 | `rpt_zone_heat_robustness` | 1 row / zone | Reruns that verdict with zones reconciled to ERCOT's total and with 2025 left out; `is_robust` when all agree |
 
-**Data tests (99):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
+**Data tests (104):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
 
 ## History and unit tests
 
@@ -296,10 +298,16 @@ Two model versions are kept (`--model v1|v2`). **v1** predicted demand in MWh fr
 and scored 4.67% MAPE vs ERCOT's 2.38% over 48,539 hours: tree models can't predict above anything they were
 trained on, and Texas demand grows every year, so it kept under-forecasting. **v2** (default) predicts demand
 *relative to its recent level* (the mean of the 14 days ending 2 days earlier) and sees all 9 cities' temperatures;
-on synthetic demand growing 5% a year it cut the error from 4.04% to 1.72%. Tests check that lags only look back, that each month trains only on earlier months, and that
-load-shed hours are excluded. **Caveat:** this version uses the *observed* temperature of the forecast day, a perfect
-weather forecast, while ERCOT had to forecast the weather too. The next roadmap item scores the model with real day-ahead
-weather forecasts and splits the error into weather-forecast error vs model error.
+on synthetic demand growing 5% a year it cut the error from 4.04% to 1.72%. On real data v2 scored 4.36% overall, falling
+from 5.4% in 2021 (little history) to 3.65% in 2025 vs ERCOT's 2.46%. Tests check that lags only look back, that each
+month trains only on earlier months, and that load-shed hours are excluded.
+
+**Model error vs weather-forecast error.** Every hour is predicted twice by the same trained model: with the weather that
+actually happened (the model's own error) and with the **day-ahead weather forecast** that a forecaster really had
+(GFS, issued 24 hours earlier, from Open-Meteo's Previous Runs API, archived since April 2021;
+`src/ingestion/weather_forecast.py`). `agg_forecast_accuracy_monthly.weather_effect_pts` is the difference on the same
+hours: the part of the error caused by the weather forecast being wrong. The forecast-weather version is the fair
+comparison with ERCOT's day-ahead forecast.
 
 ## Finding: is each zone getting more heat-sensitive?
 
@@ -320,6 +328,8 @@ data/raw/
   eia_ercot_hourly/year=YYYY/month=MM/data.parquet       # demand (D), forecast (DF), net generation (NG), MWh
   eia_ercot_zone_hourly/year=YYYY/month=MM/data.parquet  # demand per ERCOT weather zone, MWh
   eia_ercot_fuel_hourly/year=YYYY/month=MM/data.parquet  # net generation per fuel type, MWh
+  weather_forecast_hourly/year=YYYY/month=MM/data.parquet   # day-ahead (24 h) GFS forecasts per city
+  model_demand_forecast_hourly/year=YYYY/month=MM/data.parquet  # our model's predictions (observed + forecast weather)
   weather_hourly/year=YYYY/month=MM/data.parquet     # temp_f, feels_like_f, humidity_pct per city
 ```
 
@@ -328,4 +338,4 @@ All timestamps are **UTC** so the two sources join cleanly on `period_utc`. Each
 ## Data sources
 
 - [U.S. Energy Information Administration (EIA) Open Data](https://www.eia.gov/opendata/), hourly electric grid monitor (ERCOT)
-- [Open-Meteo Historical Weather API](https://open-meteo.com/) (non-commercial use)
+- [Open-Meteo Historical Weather API](https://open-meteo.com/) and [Previous Model Runs API](https://open-meteo.com/en/docs/previous-runs-api) (non-commercial use)

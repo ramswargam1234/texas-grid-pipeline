@@ -120,7 +120,16 @@ def main() -> None:
                           and model_forecast_mwh is not null and not is_load_shed""").fetchone()
         if fc and fc[0]:
             print(f"Our demand model   : {fc[5]} {fc[1]:.2f}% MAPE vs ERCOT {fc[2]:.2f}% over {fc[0]:,} backtest hours; "
-                  f"3-7 PM peak {fc[3]:.2f}% vs {fc[4]:.2f}% (uses observed weather: best case until t2r)")
+                  f"3-7 PM peak {fc[3]:.2f}% vs {fc[4]:.2f}% (with observed weather)")
+        fw = con.sql("""select count(*), 100 * avg(model_fw_abs_pct_error), 100 * avg(model_abs_pct_error),
+                               100 * avg(eia_abs_pct_error), avg(abs(temp_forecast_error_f)), min(date_local)
+                        from fct_forecast_hourly
+                        where actual_mwh is not null and eia_forecast_mwh is not null
+                          and model_fw_forecast_mwh is not null and not is_load_shed""").fetchone()
+        if fw and fw[0]:
+            print(f"With weather fcst  : {fw[1]:.2f}% MAPE vs ERCOT {fw[3]:.2f}% over {fw[0]:,} hours since {fw[5]} = "
+                  f"model {fw[2]:.2f}% + weather forecast {fw[1] - fw[2]:+.2f} pts (GFS day-ahead, "
+                  f"4-city temp error {fw[4]:.1f}°F)")
     print(f"Missing grid hours : {missing:,} (see dq_grid_missing_hours)")
     print()
 

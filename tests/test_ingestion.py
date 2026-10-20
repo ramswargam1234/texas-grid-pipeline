@@ -168,3 +168,25 @@ def test_eia_fuel_parse_and_paginate(monkeypatch):
     assert df.loc[df.fuel_code == "BAT", "generation_mwh"].item() == -500.0  # charging stays negative
     assert session.calls[0]["facets[respondent][]"] == "ERCO"
     assert [c["offset"] for c in session.calls] == [0, 2]
+
+
+# ---------- weather forecasts (Open-Meteo Previous Runs) ----------
+
+def test_weather_forecast_parse_and_params():
+    from src.ingestion import weather_forecast
+    body = {"hourly": {"time": ["2024-07-01T20:00", "2024-07-01T21:00", "2024-07-01T22:00"],
+                       "temperature_2m_previous_day1": [99.1, None, 97.0],
+                       "relative_humidity_2m_previous_day1": [40, 42, 45]}}
+    session = FakeSession([body])
+    df = weather_forecast.fetch_city("dallas", 32.7, -96.8, date(2024, 7, 1), date(2024, 7, 1), session=session)
+    assert list(df["forecast_temp_f"]) == [99.1, 97.0]          # hours with no forecast are dropped
+    assert df["lead_hours"].unique().tolist() == [24]
+    assert df["period_utc"].dt.tz is not None
+    call = session.calls[0]
+    assert call["hourly"] == "temperature_2m_previous_day1,relative_humidity_2m_previous_day1"
+    assert call["temperature_unit"] == "fahrenheit" and call["timezone"] == "GMT"
+
+
+def test_weather_forecast_empty_response():
+    from src.ingestion import weather_forecast
+    assert weather_forecast.to_frame({}, "dallas").empty

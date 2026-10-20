@@ -44,12 +44,14 @@ backfill: setup  ## Load all real data from 2021 (needs EIA_API_KEY in .env)
 	$(PY) -m src.ingestion.eia_zones --start 2021-01-01
 	$(PY) -m src.ingestion.eia_fuel --start 2021-01-01
 	$(PY) -m src.ingestion.weather --start 2021-01-01
+	$(PY) -m src.ingestion.weather_forecast --start 2021-04-01
 
 refresh: setup  ## Load the latest days of real data (needs EIA_API_KEY)
 	$(PY) -m src.ingestion.eia_demand --days 7
 	$(PY) -m src.ingestion.eia_zones --days 7
 	$(PY) -m src.ingestion.eia_fuel --days 7
 	$(PY) -m src.ingestion.weather --days 14
+	$(PY) -m src.ingestion.weather_forecast --days 10
 
 sync: setup  ## Upload new and changed lake files to S3 (needs AWS keys)
 	$(PY) -m src.storage.s3_sync

@@ -177,7 +177,8 @@ def headline(con) -> dict:
 OPTIONAL_QUERIES = {
     "forecast_compare": """
         select month, hours, model_mape_pct, eia_mape_pct, model_peak_mape_pct, eia_peak_mape_pct,
-               model_better_share
+               model_better_share, fw_hours, model_fw_mape_pct, model_obs_mape_fw_hours_pct,
+               eia_mape_fw_hours_pct, weather_effect_pts, temp_forecast_mae_f
         from agg_forecast_accuracy_monthly
         where hours >= 24 * 7
         order by month
@@ -205,7 +206,17 @@ def forecast_summary(con) -> dict:
         return {}
     keys = ["hours", "model_mape_pct", "eia_mape_pct", "model_peak_mape_pct", "eia_peak_mape_pct",
             "first_date", "last_date", "model_version"]
-    return {k: (str(v) if k.endswith("date") else v) for k, v in zip(keys, row)}
+    out = {k: (str(v) if k.endswith("date") else v) for k, v in zip(keys, row)}
+    fw = con.sql("""
+        select count(*), 100 * avg(model_fw_abs_pct_error), 100 * avg(model_abs_pct_error),
+               100 * avg(eia_abs_pct_error), avg(abs(temp_forecast_error_f)), min(date_local)
+        from fct_forecast_hourly
+        where actual_mwh is not null and eia_forecast_mwh is not null and model_fw_forecast_mwh is not null
+          and not is_load_shed""").fetchone()
+    if fw and fw[0]:
+        out["fw"] = {"hours": fw[0], "model_fw_mape_pct": fw[1], "model_obs_mape_pct": fw[2],
+                     "eia_mape_pct": fw[3], "temp_mae_f": fw[4], "first_date": str(fw[5])}
+    return out
 
 
 def test_counts() -> dict:

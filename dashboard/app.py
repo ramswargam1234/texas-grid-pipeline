@@ -406,24 +406,44 @@ if not fcmp.empty and fm_:
         "only on the months before it. Scored on the same hours as ERCOT's day-ahead forecast, leaving out the "
         "Uri blackout hours."
     )
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Our model, mean abs. % error", f"{fm_['model_mape_pct']:.2f}%",
-              delta=f"{fm_['model_mape_pct'] - fm_['eia_mape_pct']:+.2f} pts vs ERCOT", delta_color="inverse")
-    m2.metric("ERCOT day-ahead forecast", f"{fm_['eia_mape_pct']:.2f}%")
-    m3.metric("3-7 PM peak hours: ours vs ERCOT", f"{fm_['model_peak_mape_pct']:.2f}% vs {fm_['eia_peak_mape_pct']:.2f}%")
+    fw = fm_.get("fw")
+    if fw:
+        st.markdown(
+            f"To compare fairly with ERCOT, each hour is also predicted with the **day-ahead weather forecast** "
+            f"(GFS, issued 24 hours earlier), which is what a forecaster really had. Since {fw['first_date'][:7]}:"
+        )
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Our model, real weather forecast", f"{fw['model_fw_mape_pct']:.2f}%",
+                  delta=f"{fw['model_fw_mape_pct'] - fw['eia_mape_pct']:+.2f} pts vs ERCOT", delta_color="inverse",
+                  help="Mean absolute % error, same hours as ERCOT, Uri blackout hours excluded")
+        m2.metric("ERCOT day-ahead forecast", f"{fw['eia_mape_pct']:.2f}%")
+        m3.metric("Error caused by the weather forecast", f"{fw['model_fw_mape_pct'] - fw['model_obs_mape_pct']:+.2f} pts",
+                  help=f"Our model with the forecast weather minus with the observed weather "
+                       f"({fw['model_obs_mape_pct']:.2f}%), same hours. 4-city temperature forecast error: "
+                       f"{fw['temp_mae_f']:.1f}°F on average.")
+    else:
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Our model, mean abs. % error", f"{fm_['model_mape_pct']:.2f}%",
+                  delta=f"{fm_['model_mape_pct'] - fm_['eia_mape_pct']:+.2f} pts vs ERCOT", delta_color="inverse")
+        m2.metric("ERCOT day-ahead forecast", f"{fm_['eia_mape_pct']:.2f}%")
+        m3.metric("3-7 PM peak hours: ours vs ERCOT", f"{fm_['model_peak_mape_pct']:.2f}% vs {fm_['eia_peak_mape_pct']:.2f}%")
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=fcmp["month"], y=fcmp["model_mape_pct"], name="Our model", mode="lines+markers",
-                             line=dict(color=BLUE, width=2), marker=dict(size=7),
-                             hovertemplate="Our model: %{y:.2f}%<extra></extra>"))
+    if "model_fw_mape_pct" in fcmp and fcmp["model_fw_mape_pct"].notna().any():
+        fig.add_trace(go.Scatter(x=fcmp["month"], y=fcmp["model_fw_mape_pct"], name="Our model, real weather forecast",
+                                 mode="lines+markers", line=dict(color=BLUE, width=2), marker=dict(size=7),
+                                 hovertemplate="Ours, forecast weather: %{y:.2f}%<extra></extra>"))
+    fig.add_trace(go.Scatter(x=fcmp["month"], y=fcmp["model_mape_pct"], name="Our model, perfect weather",
+                             mode="lines", line=dict(color=BLUE, width=1.5, dash="dot"),
+                             hovertemplate="Ours, observed weather: %{y:.2f}%<extra></extra>"))
     fig.add_trace(go.Scatter(x=fcmp["month"], y=fcmp["eia_mape_pct"], name="ERCOT day-ahead", mode="lines+markers",
                              line=dict(color=MUTED, width=2), marker=dict(size=7),
                              hovertemplate="ERCOT: %{y:.2f}%<extra></extra>"))
     fig = style(fig, height=300, y_title="Mean abs. % error")
     fig.update_layout(showlegend=True, legend=dict(orientation="h", y=1.12, x=0), margin=dict(t=36))
     chart(fig, width="stretch")
-    st.caption("Caveat: this version uses the observed temperature of the forecast day, a perfect weather forecast. "
-               "ERCOT had to forecast the weather too, so treat our numbers as a best case. The next step scores "
-               "the model with real day-ahead weather forecasts.")
+    st.caption("The dotted line is the model's own error, given the weather that actually happened. The gap between "
+               "the two blue lines is the part caused by the weather forecast being wrong. Weather forecasts come "
+               "from the GFS archive (Open-Meteo Previous Runs API), available from April 2021.")
 
 # ---------- 5. forecast accuracy + data quality ----------
 left, right = st.columns(2)
@@ -441,7 +461,7 @@ with right:
     st.markdown(
         f"- **{h['rows_modeled']:,}** rows modeled across **{h['hours']:,}** hours\n"
         f"- **{h['missing_hours']:,}** hours missing from the EIA feed, caught by a dbt test\n"
-        f"- {h.get('data_tests', 99)} data tests and {h.get('unit_tests', 8)} unit tests run on every dbt build\n"
+        f"- {h.get('data_tests', 104)} data tests and {h.get('unit_tests', 9)} unit tests run on every dbt build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
     miss = data["missing"]

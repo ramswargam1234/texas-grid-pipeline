@@ -1,5 +1,6 @@
--- One row per hour: actual demand, ERCOT's day-ahead forecast (EIA "DF") and our model's forecast.
--- Uri load-shed hours are flagged: actual demand there was cut by blackouts, so no forecast can be scored.
+-- One row per hour: actual demand, ERCOT's day-ahead forecast (EIA "DF") and our model's forecast,
+-- scored twice: with the observed weather (the model's own error) and with the day-ahead weather
+-- forecast (what a forecaster really knew). Uri load-shed hours are flagged and never scored.
 select
     g.period_utc,
     g.date_key,
@@ -9,11 +10,17 @@ select
     g.demand_mwh                                                   as actual_mwh,
     g.forecast_mwh                                                 as eia_forecast_mwh,
     m.predicted_mwh                                                as model_forecast_mwh,
+    m.predicted_fw_mwh                                             as model_fw_forecast_mwh,
     m.model_version,
+    g.avg_temp_f                                                   as observed_temp_f,
+    m.forecast_temp_f,
+    m.forecast_temp_f - g.avg_temp_f                               as temp_forecast_error_f,
     g.forecast_mwh - g.demand_mwh                                  as eia_error_mwh,
     m.predicted_mwh - g.demand_mwh                                 as model_error_mwh,
+    m.predicted_fw_mwh - g.demand_mwh                              as model_fw_error_mwh,
     abs(g.forecast_mwh - g.demand_mwh) / nullif(g.demand_mwh, 0)   as eia_abs_pct_error,
     abs(m.predicted_mwh - g.demand_mwh) / nullif(g.demand_mwh, 0)  as model_abs_pct_error,
+    abs(m.predicted_fw_mwh - g.demand_mwh) / nullif(g.demand_mwh, 0) as model_fw_abs_pct_error,
     g.period_local >= timestamp '{{ var("uri_shed_start") }}'
         and g.period_local < timestamp '{{ var("uri_shed_end") }}' as is_load_shed
 from {{ ref('fct_grid_hourly') }} g

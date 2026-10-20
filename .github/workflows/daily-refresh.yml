@@ -54,6 +54,9 @@ jobs:
       - name: Load latest weather (Open-Meteo)
         run: python -m src.ingestion.weather --days 14
 
+      - name: Load latest day-ahead weather forecasts (Open-Meteo Previous Runs)
+        run: python -m src.ingestion.weather_forecast --days 10
+
       - name: Push new and changed files to S3
         run: python -m src.storage.s3_sync
 

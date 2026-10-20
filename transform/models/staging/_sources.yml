@@ -20,5 +20,9 @@ sources:
         description: >
           Hourly demand predictions from our own model (src/forecast), backtested month by month. Written to
           the lake after the main dbt build; read by the models tagged `forecast`.
+      - name: weather_forecast_hourly
+        description: >
+          Archived day-ahead weather forecasts (Open-Meteo Previous Runs API, GFS, issued 24 hours before each
+          hour) for the same 9 cities. Fahrenheit, UTC. From April 2021.
       - name: weather_hourly
         description: Hourly Open-Meteo weather for 9 Texas cities, one or more per ERCOT weather zone (UTC).

@@ -3,7 +3,8 @@
     ingest_grid ───┐
     ingest_zones ──┤
     ingest_fuel ───┼─► upload_to_s3 (skipped if S3 not configured) ─► dbt_build ─► forecast
-    ingest_weather ┘
+    ingest_weather ┤
+    ingest_weather_forecast ┘
                                                         ┌─► report
       ─► upload_forecast (skipped if no S3) ─► dbt_build_forecast ─┤
                                                         └─► export_dashboard
@@ -70,6 +71,12 @@ with DAG(
         cwd=PROJECT_DIR,
     )
 
+    ingest_weather_forecast = BashOperator(
+        task_id="ingest_weather_forecast",
+        bash_command=f"{PY} -m src.ingestion.weather_forecast --days 10",
+        cwd=PROJECT_DIR,
+    )
+
     # Exit code 99 marks the task "skipped" (not failed) when S3 isn't set up yet.
     upload_to_s3 = BashOperator(
         task_id="upload_to_s3",
@@ -123,7 +130,7 @@ with DAG(
         cwd=PROJECT_DIR,
     )
 
-    [ingest_grid, ingest_zones, ingest_fuel, ingest_weather] >> upload_to_s3 >> dbt_build >> forecast
+    [ingest_grid, ingest_zones, ingest_fuel, ingest_weather, ingest_weather_forecast] >> upload_to_s3 >> dbt_build >> forecast
     forecast >> upload_forecast >> dbt_build_forecast >> [report, export_dashboard]
 
 
@@ -161,6 +168,12 @@ with DAG(
         bash_command=f"{PY} -m src.ingestion.weather --start {{{{ params.start }}}}",
         cwd=PROJECT_DIR,
     )
+    weather_forecast = BashOperator(
+        task_id="backfill_weather_forecast",
+        bash_command=f"{PY} -m src.ingestion.weather_forecast --start {{{{ params.start }}}}",
+        cwd=PROJECT_DIR,
+        execution_timeout=timedelta(hours=2),
+    )
     sync = BashOperator(
         task_id="upload_to_s3",
         bash_command=(
@@ -175,4 +188,4 @@ with DAG(
         cwd=PROJECT_DIR,
         trigger_rule="none_failed",
     )
-    [grid, zones, fuel, weather] >> sync >> build
+    [grid, zones, fuel, weather, weather_forecast] >> sync >> build

@@ -28,6 +28,13 @@ EIA_FUEL_URL = "https://api.eia.gov/v2/electricity/rto/fuel-type-data/data/"
 # ---- Open-Meteo historical weather (no key needed) ----
 WEATHER_URL = "https://archive-api.open-meteo.com/v1/archive"
 WEATHER_VARS = ["temperature_2m", "apparent_temperature", "relative_humidity_2m"]
+
+# ---- Open-Meteo Previous Runs API: what the weather FORECAST said, archived (no key needed) ----
+# `<var>_previous_day1` = the value forecast 24 hours before each hour, i.e. a day-ahead weather forecast.
+# GFS is used throughout because its archive reaches back to March 2021 (most models start in 2024).
+WEATHER_FORECAST_URL = "https://previous-runs-api.open-meteo.com/v1/forecast"
+WEATHER_FORECAST_MODEL = os.getenv("WEATHER_FORECAST_MODEL", "gfs_seamless")
+WEATHER_FORECAST_START = "2021-04-01"
 CITIES = {
     # The 4 metros behind the statewide "average Texas temperature" (see METRO_CITIES).
     "dallas": (32.7767, -96.7970),

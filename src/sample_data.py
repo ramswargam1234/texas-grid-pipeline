@@ -15,7 +15,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from src.ingestion import config, eia_demand, eia_fuel, eia_zones, weather
+from src.ingestion import config, eia_demand, eia_fuel, eia_zones, weather, weather_forecast
 from src.ingestion.common import write_monthly
 
 log = logging.getLogger("sample_data")
@@ -28,7 +28,7 @@ ZONES = {"COAS": (0.27, 2), "NCEN": (0.30, 0), "SCEN": (0.15, 2), "FWES": (0.08,
          "SOUT": (0.08, 4), "EAST": (0.04, -1), "NRTH": (0.03, -3), "WEST": (0.05, -2)}
 
 
-def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     rng = np.random.default_rng(seed)
     hours = pd.date_range(START, END, freq="h", tz="UTC")
     local = hours.tz_convert("America/Chicago").tz_localize(None)
@@ -40,7 +40,7 @@ def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.D
     freeze = (local >= pd.Timestamp("2021-02-13")) & (local < pd.Timestamp("2021-02-19"))
     base = np.where(freeze, base - 30, base)
 
-    wx = []
+    wx, wx_fc = [], []
     for city, offset in [("dallas", 0), ("houston", 2), ("austin", 1), ("san_antonio", 3),
                          ("midland", -1), ("abilene", -2), ("wichita_falls", -3), ("tyler", -1),
                          ("corpus_christi", 4)]:
@@ -50,6 +50,14 @@ def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.D
                            "apparent_temperature": (t + 3).round(1).tolist(),
                            "relative_humidity_2m": rng.integers(30, 90, len(hours)).tolist()}}
         wx.append(weather.to_frame(body, city))
+        # Day-ahead forecast of that temperature: actual + a slowly drifting error (sd ~2.5°F), from April 2021
+        # like the real GFS archive.
+        err = pd.Series(rng.normal(0, 1, len(hours))).ewm(alpha=0.05).mean().to_numpy() * 2.5 / 0.16
+        fc_body = {"hourly": {"time": hours.strftime("%Y-%m-%dT%H:%M").tolist(),
+                              "temperature_2m_previous_day1": (t + err).round(1).tolist(),
+                              "relative_humidity_2m_previous_day1": rng.integers(30, 90, len(hours)).tolist()}}
+        fc_city = weather_forecast.to_frame(fc_body, city)
+        wx_fc.append(fc_city[fc_city["period_utc"] >= pd.Timestamp(config.WEATHER_FORECAST_START, tz="UTC")])
 
     # Demand (MWh): U-shaped in temperature plus a daily cycle; load shed during the storm.
     avg_t = base + 1.5
@@ -92,12 +100,13 @@ def build(seed: int = 0) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.D
             fuel_rows.append({"period": period, "respondent": "ERCO", "fueltype": code, "type-name": code,
                               "value": f"{series[i]:.0f}", "value-units": "megawatthours"})
     return (pd.concat(wx, ignore_index=True), eia_demand.to_frame(rows), eia_zones.to_frame(zone_rows),
-            eia_fuel.to_frame(fuel_rows))
+            eia_fuel.to_frame(fuel_rows), pd.concat(wx_fc, ignore_index=True))
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    wx, grid, zones, fuel = build()
+    wx, grid, zones, fuel, wx_fc = build()
+    write_monthly(wx_fc, weather_forecast.DATASET, "period_utc", config.RAW_DIR)
     write_monthly(wx, weather.DATASET, "period_utc", config.RAW_DIR)
     write_monthly(fuel, eia_fuel.DATASET, "period_utc", config.RAW_DIR)
     write_monthly(grid, eia_demand.DATASET, "period_utc", config.RAW_DIR)

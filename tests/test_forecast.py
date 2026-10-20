@@ -65,3 +65,19 @@ def test_v2_level_uses_only_demand_from_2_days_back():
     window = df["demand_mwh"].iloc[i - dm.LEVEL_GAP - dm.LEVEL_HOURS + 1: i - dm.LEVEL_GAP + 1]
     assert abs(df["level_mwh"].iloc[i] - window.mean()) < 1e-6
     assert df["level_mwh"].iloc[: dm.LEVEL_GAP + dm.LEVEL_HOURS // 2 - 1].isna().all()
+
+
+def test_forecast_weather_swaps_inputs_and_is_missing_without_forecasts():
+    raw = fake_hours(70)
+    wf = pd.DataFrame(index=raw["period_utc"])
+    for c in dm.CITIES:
+        wf[f"fc_temp_{c}"] = raw["avg_temp_f"].to_numpy() + 5     # forecast 5°F too warm everywhere
+        wf[f"fc_hum_{c}"] = 50.0
+    wf.iloc[: 24 * 40] = np.nan                                       # no forecasts before Feb 10
+    df = dm.make_features(raw, wf)
+    x = dm.with_forecast_weather(df)
+    assert (x["temp_f"] - df["temp_f"]).dropna().round(6).eq(5).all()
+    assert not df["fc_available"].iloc[: 24 * 40].any() and df["fc_available"].iloc[24 * 40:].all()
+    preds = dm.backtest_month(df, pd.Timestamp("2024-02-01"), "v1")
+    assert preds["predicted_fw_mwh"].iloc[: 24 * 9].isna().all()       # Feb 1-9: no forecast, no score
+    assert preds["predicted_fw_mwh"].iloc[24 * 9:].notna().all()

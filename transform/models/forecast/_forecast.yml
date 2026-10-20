@@ -11,9 +11,9 @@ models:
 
   - name: fct_forecast_hourly
     description: >
-      Hourly actual demand vs ERCOT's day-ahead forecast and our model. Note: the model uses observed
-      weather for the forecast day (a perfect weather forecast), so it has an advantage over ERCOT's
-      forecast until roadmap item t2r scores it with real day-ahead weather forecasts.
+      Hourly actual demand vs ERCOT's day-ahead forecast and our model, which is scored twice: with the
+      observed weather (model_forecast_mwh, the model's own error) and with the GFS day-ahead weather
+      forecast (model_fw_forecast_mwh, a fair comparison with ERCOT).
     columns:
       - name: period_utc
         data_tests: [unique, not_null]
@@ -24,8 +24,23 @@ models:
                 to: ref('dim_date')
                 field: date_key
 
+  - name: stg_weather_forecast__hourly
+    description: Day-ahead (24-hour lead) GFS weather forecasts per city and hour, from April 2021.
+    columns:
+      - name: period_utc
+        data_tests: [not_null]
+      - name: city
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['dallas', 'houston', 'austin', 'san_antonio', 'midland', 'abilene', 'wichita_falls', 'tyler', 'corpus_christi']
+      - name: forecast_temp_f
+        data_tests: [not_null]
+
   - name: agg_forecast_accuracy_monthly
-    description: Monthly MAPE, bias and peak-hour MAPE for our model and ERCOT's forecast on the same hours.
+    description: >
+      Monthly MAPE, bias and peak-hour MAPE for our model and ERCOT's forecast on the same hours, plus the
+      split of our error into model error (observed weather) and weather-forecast error (weather_effect_pts).
     columns:
       - name: month
         data_tests: [unique, not_null]

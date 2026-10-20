@@ -156,3 +156,17 @@ unit_tests:
     expect:
       rows:
         - {month: "2024-07-01", hours: 2, model_mape_pct: 4.0, eia_mape_pct: 5.5, model_peak_mape_pct: 5.0, eia_peak_mape_pct: 10.0, model_better_share: 0.5}
+
+  - name: forecast_weather_effect_is_measured_on_the_same_hours
+    description: >
+      weather_effect_pts compares the model with forecast weather against the model with observed weather on
+      the SAME hours (those that have a weather forecast), so missing forecasts can't skew the split.
+    model: agg_forecast_accuracy_monthly
+    given:
+      - input: ref('fct_forecast_hourly')
+        rows:
+          - {date_local: "2024-07-01", hour_local: 16, actual_mwh: 100, eia_forecast_mwh: 102, model_forecast_mwh: 102, model_fw_forecast_mwh: 106, model_abs_pct_error: 0.02, eia_abs_pct_error: 0.02, model_fw_abs_pct_error: 0.06, model_error_mwh: 2, eia_error_mwh: 2, temp_forecast_error_f: 3, is_load_shed: false}
+          - {date_local: "2024-07-01", hour_local: 17, actual_mwh: 100, eia_forecast_mwh: 102, model_forecast_mwh: 110, model_fw_forecast_mwh: null, model_abs_pct_error: 0.10, eia_abs_pct_error: 0.02, model_fw_abs_pct_error: null, model_error_mwh: 10, eia_error_mwh: 2, temp_forecast_error_f: null, is_load_shed: false}
+    expect:
+      rows:
+        - {month: "2024-07-01", hours: 2, model_mape_pct: 6.0, fw_hours: 1, model_fw_mape_pct: 6.0, model_obs_mape_fw_hours_pct: 2.0, weather_effect_pts: 4.0, temp_forecast_mae_f: 3.0}
