@@ -36,6 +36,7 @@ joined as (
 select
     *,
     cast(period_local as date)                     as date_local,
+    cast(strftime(period_local, '%Y%m%d') as integer) as date_key,
     extract('hour' from period_local)              as hour_local,
     dayname(period_local)                          as day_of_week,
     extract('isodow' from period_local) in (6, 7)  as is_weekend,

@@ -138,9 +138,72 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `fct_uri_unserved_hourly` | 1 row / hour, Feb 8–21 2021 | Forecast, weather-model and actual demand during Winter Storm Uri |
 | `agg_uri_summary` | 1 row | Estimated unserved energy (GWh) during the blackouts |
 | `fct_zone_hourly` | 1 row / hour / zone | Demand in each of ERCOT's 8 weather zones, joined to that zone's own weather |
+| `fct_grid_series_hourly` | 1 row / hour / series | Star-schema fact for the whole grid (demand, forecast, generation) |
+| `dim_date`, `dim_zone`, `dim_series` | 1 row / date, zone, series | Conformed dimensions shared by the fact tables |
 | `agg_zone_profile` | 1 row / zone | Share of energy, peak, and heat sensitivity (MWh and % per °F above 75°F) |
 
-**Data tests (33):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, and a check that the 8 weather zones add up to ERCOT's total within 3%.
+**Data tests (51):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, and a check that the 8 weather zones add up to ERCOT's total within 3%.
+
+## Star schema
+
+Fact tables share conformed dimensions through integer and code keys; every key is covered by a
+`relationships` test.
+
+```mermaid
+erDiagram
+    dim_date   ||--o{ fct_grid_series_hourly : date_key
+    dim_zone   ||--o{ fct_grid_series_hourly : zone_key
+    dim_series ||--o{ fct_grid_series_hourly : series_key
+    dim_date   ||--o{ fct_zone_hourly : date_key
+    dim_zone   ||--o{ fct_zone_hourly : zone_key
+    dim_date   ||--o{ fct_grid_hourly : date_key
+
+    dim_date {
+        int date_key PK "YYYYMMDD, Central time"
+        date date_day
+        string season
+        bool is_weekend
+    }
+    dim_zone {
+        string zone_key PK "8 weather zones + ERCO"
+        string zone_label
+        string weather_cities
+    }
+    dim_series {
+        string series_key PK "D, DF, NG"
+        string series_name
+        string unit
+    }
+    fct_grid_series_hourly {
+        timestamp period_utc
+        int date_key FK
+        string zone_key FK
+        string series_key FK
+        double value_mwh
+    }
+    fct_zone_hourly {
+        timestamp period_utc
+        int date_key FK
+        string zone_key FK
+        double demand_mwh
+        double zone_temp_f
+    }
+```
+
+Example: average demand, forecast and generation by season.
+
+```sql
+select d.season, s.series_name, avg(f.value_mwh) as avg_mwh
+from fct_grid_series_hourly f
+join dim_date   d using (date_key)
+join dim_series s using (series_key)
+group by all
+order by 1, 2;
+```
+
+`fct_grid_series_hourly` keeps the narrow (hour, series) grain, so a new EIA series is a new row in the
+`ercot_series` seed rather than a schema change. The wide `fct_grid_hourly` stays as a convenience table for
+the dashboard.
 
 ## Finding: demand that went unserved during Winter Storm Uri
 
@@ -154,14 +217,6 @@ days on record. `fct_uri_unserved_hourly` estimates the missing demand two indep
 
 **Result:** an estimated **~1,340 GWh** of demand went unserved over the 72 load-shed hours (forecast gap; the weather model gives ~1,900 GWh as an upper bound). The forecast peaked at **76,783 MW** during load shed, matching ERCOT's own ~76.8 GW estimate. The largest hourly gap, **28,885 MW**, exceeds the 20 GW ERCOT ordered shed, suggesting delivered power also fell from local outages and industrial cutbacks. For reference, ERCOT reported shedding up to 20 GW and estimated peak demand
 of about 76.8 GW without load shed ([S&P Global](https://www.spglobal.com/commodity-insights/en/news-research/latest-news/electric-power/022421-ercot-lost-almost-half-of-generation-capacity-in-storm-causing-20-gw-load-shed)).
-
-## Known data issue: zone totals in 2025
-
-`assert_zones_sum_to_ercot_total` checks every hour that ERCOT's 8 weather zones add up to its total demand.
-2021–2023 reconcile almost perfectly. In 2025, the zones sum to roughly **4–5% more** than the total in about
-7–20% of hours each month (never less), with no missing zones. This is a difference between EIA's two published
-datasets, not a pipeline error, so the test warns rather than fails. Zone heat-sensitivity is measured against
-each zone's own history and isn't affected. The newest hours sometimes lack a zone until EIA finishes publishing.
 
 ## Data layout
 

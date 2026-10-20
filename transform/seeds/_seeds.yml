@@ -15,3 +15,12 @@ seeds:
         data_tests: [not_null]
       - name: weather_city
         data_tests: [unique, not_null]
+
+  - name: ercot_series
+    description: The hourly EIA series loaded for ERCOT, with plain-English names.
+    config:
+      column_types:
+        series_code: varchar
+    columns:
+      - name: series_code
+        data_tests: [unique, not_null]

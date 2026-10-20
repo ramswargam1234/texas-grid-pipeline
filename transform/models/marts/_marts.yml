@@ -9,6 +9,13 @@ models:
         data_tests: [unique, not_null]
       - name: period_local
         description: Start of the hour, US Central time.
+      - name: date_key
+        description: Central-time date as YYYYMMDD; joins to dim_date.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
       - name: forecast_error_mwh
         description: Actual demand minus day-ahead forecast (positive = grid under-forecast).
       - name: abs_pct_error
@@ -60,6 +67,18 @@ models:
     columns:
       - name: zone_code
         data_tests: [not_null]
+      - name: zone_key
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_zone')
+                field: zone_key
+      - name: date_key
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
 
   - name: agg_zone_profile
     description: >
@@ -68,3 +87,29 @@ models:
     columns:
       - name: zone_code
         data_tests: [unique, not_null]
+
+  - name: fct_grid_series_hourly
+    description: >
+      Star-schema fact at grain (hour, series) for the whole grid. Joins to dim_date, dim_zone ('ERCO')
+      and dim_series.
+    columns:
+      - name: date_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: zone_key
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_zone')
+                field: zone_key
+      - name: series_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_series')
+                field: series_key

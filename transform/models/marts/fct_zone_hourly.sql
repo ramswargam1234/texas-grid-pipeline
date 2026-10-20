@@ -5,10 +5,12 @@ with zones as (
 
 select
     d.period_utc,
+    cast(strftime(d.period_utc at time zone 'America/Chicago', '%Y%m%d') as integer) as date_key,
     (d.period_utc at time zone 'America/Chicago')        as period_local,
     cast(d.period_utc at time zone 'America/Chicago' as date) as date_local,
     extract('hour' from d.period_utc at time zone 'America/Chicago') as hour_local,
     d.zone_code,
+    d.zone_code                                           as zone_key,
     z.zone_label,
     d.demand_mwh,
     w.zone_temp_f,

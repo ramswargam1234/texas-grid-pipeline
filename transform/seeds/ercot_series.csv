@@ -1,0 +1,4 @@
+series_code,series_name,description,unit
+D,Demand,Actual hourly electricity demand (load) served on the ERCOT grid,MWh
+DF,Day-ahead demand forecast,ERCOT's forecast of hourly demand published the day before,MWh
+NG,Net generation,Electricity generated within ERCOT minus power plants' own use,MWh

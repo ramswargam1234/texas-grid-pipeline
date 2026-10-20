@@ -26,5 +26,7 @@ models:
       +materialized: table   # copy raw files into the warehouse so it is self-contained
     intermediate:
       +materialized: view
+    dims:
+      +materialized: table
     marts:
       +materialized: table

@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: Calendar dimension, one row per Central-time date in the data's range.
+    columns:
+      - name: date_key
+        description: Integer YYYYMMDD key used by every fact table.
+        data_tests: [unique, not_null]
+      - name: season
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Winter', 'Spring', 'Summer', 'Fall']
+
+  - name: dim_zone
+    description: ERCOT's 8 weather zones plus an 'ERCO' row representing the whole grid.
+    columns:
+      - name: zone_key
+        data_tests: [unique, not_null]
+
+  - name: dim_series
+    description: The EIA hourly series codes (D, DF, NG) with names and units.
+    columns:
+      - name: series_key
+        data_tests: [unique, not_null]
