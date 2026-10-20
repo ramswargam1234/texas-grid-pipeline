@@ -2,21 +2,21 @@
   "peak_mwh": 91075.0,
   "peak_time_local": "2026-07-22T18:00:00",
   "peak_avg_temp_f": 97.475,
-  "hours": 50838,
+  "hours": 50856,
   "first_date": "2020-12-31",
   "last_date": "2026-10-20",
-  "rows_modeled": 608727,
-  "heat_slope_mwh_per_f": 1388.9670838450454,
+  "rows_modeled": 608776,
+  "heat_slope_mwh_per_f": 1388.967083845041,
   "hot_vs_mild_ratio": 1.7622185283593783,
-  "forecast_mape_pct": 2.471859086200888,
-  "missing_hours": 2,
+  "forecast_mape_pct": 2.4717373406629255,
+  "missing_hours": 13,
   "uri": {
     "shed_hours": 72.0,
     "shed_hours_with_data": 72.0,
     "unserved_gwh_forecast": 1342.453,
-    "unserved_gwh_weather": 1895.1602591613037,
+    "unserved_gwh_weather": 1895.160259161304,
     "max_hourly_gap_forecast_mwh": 28885.0,
-    "max_hourly_gap_weather_mwh": 39106.149273936215,
+    "max_hourly_gap_weather_mwh": 39106.14927393626,
     "peak_forecast_mwh": 76783.0,
     "peak_weather_expected_mwh": 85365.00447488228,
     "peak_actual_mwh": 65255.0,
@@ -24,5 +24,5 @@
     "weather_model_avg_r2": 0.6662528553451901,
     "extrapolated_hours": 25.0
   },
-  "exported_at_utc": "2026-10-20T05:06:34+00:00"
+  "exported_at_utc": "2026-10-20T18:01:38+00:00"
 }
