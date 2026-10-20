@@ -1,5 +1,8 @@
 # Texas Grid & Weather Data Pipeline
 
+[![CI](https://github.com/ramswargam1234/texas-grid-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/ramswargam1234/texas-grid-pipeline/actions/workflows/ci.yml)
+[![Daily refresh](https://github.com/ramswargam1234/texas-grid-pipeline/actions/workflows/daily-refresh.yml/badge.svg)](https://github.com/ramswargam1234/texas-grid-pipeline/actions/workflows/daily-refresh.yml)
+
 **Live dashboard:** https://texas-grid-ram.streamlit.app
 
 An end-to-end data pipeline that joins **hourly Texas power grid (ERCOT) demand** with **hourly weather for Dallas, Houston, Austin and San Antonio** to answer:
@@ -33,6 +36,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env            # add your free EIA key
 python -m pytest -q             # run tests
+python -m src.sample_data       # optional: synthetic data lake, no API keys needed
 
 # Backfill (safe to re-run: retries on server errors, skips months already loaded)
 python -m src.ingestion.eia_demand --start 2021-01-01
@@ -81,6 +85,15 @@ docker compose down              # stop
 - `upload_to_s3` **skips** (doesn't fail) when `S3_BUCKET` isn't set; `dbt_build` uses `trigger_rule="none_failed"` so it still runs.
 - Pipeline code runs in its own virtualenv inside the image, so dbt and Airflow dependencies never conflict.
 - Tasks call the same CLI commands as the Quickstart, so local and scheduled runs behave identically.
+
+## Automation (GitHub Actions)
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| [`ci.yml`](.github/workflows/ci.yml) | every push and pull request | Unit tests, then a full `dbt build` (models + data tests) on a synthetic data lake from `src/sample_data.py`. No secrets needed. |
+| [`daily-refresh.yml`](.github/workflows/daily-refresh.yml) | daily 13:17 UTC, or on demand | Pulls the lake from S3, loads the latest EIA and weather data, syncs back to S3, rebuilds dbt, and commits a fresh dashboard snapshot. Streamlit Cloud redeploys on that commit. |
+
+The daily job uses its own IAM access key (stored as GitHub secrets `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, plus `EIA_API_KEY`), separate from the local development key, so either can be revoked on its own.
 
 ## AWS setup
 

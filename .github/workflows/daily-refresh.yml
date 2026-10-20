@@ -1,0 +1,73 @@
+# Runs every morning in the cloud: pulls the data lake from S3, loads the newest grid and weather
+# data, syncs back to S3, rebuilds dbt, and commits a fresh dashboard snapshot. Streamlit Cloud
+# redeploys automatically when the snapshot commit lands on main.
+#
+# Repository secrets required (Settings > Secrets and variables > Actions):
+#   EIA_API_KEY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+name: Daily refresh
+
+on:
+  schedule:
+    - cron: "17 13 * * *"   # 13:17 UTC = 8:17 AM CDT / 7:17 AM CST
+  workflow_dispatch:         # "Run workflow" button in the Actions tab
+
+permissions:
+  contents: write            # needed to commit the refreshed snapshot
+
+concurrency:
+  group: daily-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: us-east-2
+      S3_BUCKET: texas-grid-pipeline-ram
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Pull data lake from S3
+        run: python -m src.storage.s3_sync --download
+
+      - name: Load latest grid data (EIA)
+        run: python -m src.ingestion.eia_demand --days 7
+
+      - name: Load latest weather (Open-Meteo)
+        run: python -m src.ingestion.weather --days 14
+
+      - name: Push new and changed files to S3
+        run: python -m src.storage.s3_sync
+
+      - name: dbt build (models + data tests)
+        run: python -m src.run_dbt
+
+      - name: Headline findings
+        run: python -m src.report
+
+      - name: Export dashboard snapshot
+        run: python -m src.export_dashboard
+
+      - name: Commit refreshed snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dashboard/snapshot
+          if git diff --cached --quiet; then
+            echo "Snapshot unchanged; nothing to commit."
+            exit 0
+          fi
+          git commit -m "Daily refresh: dashboard snapshot $(date -u +%F)"
+          git push

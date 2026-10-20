@@ -1,0 +1,33 @@
+# Runs on every push and pull request: unit tests + a full dbt build on a synthetic data lake.
+# Needs no secrets or network access to the data APIs.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Unit tests
+        run: python -m pytest -q
+
+      - name: Build synthetic data lake
+        run: python -m src.sample_data
+
+      - name: dbt build (models + data tests)
+        run: python -m src.run_dbt

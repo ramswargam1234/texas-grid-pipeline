@@ -47,3 +47,13 @@ def test_second_run_skips_unchanged_and_reuploads_changed(lake, s3):
 def test_dry_run_uploads_nothing(lake, s3):
     assert sync(lake, BUCKET, s3=s3, dry_run=True)["uploaded"] == 2
     assert "Contents" not in s3.list_objects_v2(Bucket=BUCKET)
+
+
+def test_download_pulls_missing_and_changed_files(lake, s3, tmp_path):
+    from src.storage.s3_sync import download
+    sync(lake, BUCKET, s3=s3)
+    target = tmp_path / "fresh"
+    assert download(target, BUCKET, s3=s3) == {"downloaded": 2, "skipped": 0}
+    assert download(target, BUCKET, s3=s3) == {"downloaded": 0, "skipped": 2}
+    got = pd.read_parquet(target / "eia_ercot_hourly" / "year=2024" / "month=01" / "data.parquet")
+    assert got["x"].tolist() == [1, 2, 1]

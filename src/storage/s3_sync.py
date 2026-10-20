@@ -1,4 +1,4 @@
-"""Sync the local Parquet lake (data/raw) to S3.
+"""Sync the local Parquet lake (data/raw) with S3.
 
 Only uploads files that are new or changed (compares MD5 with the S3 ETag),
 so re-running is cheap and safe.
@@ -6,8 +6,9 @@ so re-running is cheap and safe.
 Writes: s3://<S3_BUCKET>/raw/<dataset>/year=YYYY/month=MM/data.parquet
 
 Usage:
-    python -m src.storage.s3_sync            # upload new/changed files
-    python -m src.storage.s3_sync --dry-run  # show what would be uploaded
+    python -m src.storage.s3_sync              # upload new/changed files
+    python -m src.storage.s3_sync --dry-run    # show what would be uploaded
+    python -m src.storage.s3_sync --download   # pull new/changed files from S3 (used by CI)
 """
 from __future__ import annotations
 
@@ -65,14 +66,36 @@ def sync(local_dir: Path, bucket: str, prefix: str = "raw", s3=None, dry_run: bo
     return {"uploaded": uploaded, "skipped": skipped}
 
 
+def download(local_dir: Path, bucket: str, prefix: str = "raw", s3=None) -> dict:
+    """Download S3 objects that are missing locally or differ (by MD5). Returns counts."""
+    s3 = s3 or boto3.client("s3", region_name=config.AWS_REGION)
+    downloaded = skipped = 0
+    for key, etag in sorted(remote_etags(s3, bucket, prefix + "/").items()):
+        if not key.endswith(".parquet"):
+            continue
+        path = local_dir / key[len(prefix) + 1:]
+        if path.exists() and md5_hex(path) == etag:
+            skipped += 1
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        s3.download_file(bucket, key, str(path))
+        downloaded += 1
+    log.info("Done: %d downloaded, %d unchanged (bucket=%s)", downloaded, skipped, bucket)
+    return {"downloaded": downloaded, "skipped": skipped}
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--download", action="store_true", help="pull from S3 instead of pushing")
     a = ap.parse_args()
     if not config.S3_BUCKET:
         raise SystemExit("S3_BUCKET is not set. Add it to your .env file.")
-    sync(config.RAW_DIR, config.S3_BUCKET, dry_run=a.dry_run)
+    if a.download:
+        download(config.RAW_DIR, config.S3_BUCKET)
+    else:
+        sync(config.RAW_DIR, config.S3_BUCKET, dry_run=a.dry_run)
 
 
 if __name__ == "__main__":
