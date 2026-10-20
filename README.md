@@ -13,15 +13,9 @@ An end-to-end data pipeline that joins **hourly Texas power grid (ERCOT) demand 
 - Which of ERCOT's 8 weather zones are most sensitive to heat, and is that changing year by year?
 - Where does Texas get its power, and which sources carry the grid when demand peaks?
 
-## Architecture (target)
+## Architecture
 
-```
-EIA API (ERCOT hourly) ──┐
-                         ├─► Python ingestion ─► Raw Parquet (S3 / local) ─► dbt models ─► Dashboard
-Open-Meteo (weather) ────┘   idempotent,         partitioned year/month        staging → marts
-                             paginated
-                └───────────────── orchestrated by Airflow (daily) ─────────────────┘
-```
+![Architecture: EIA and Open-Meteo APIs feed Python ingestion, which writes a partitioned Parquet lake in S3; dbt and DuckDB build and test a star schema; a Streamlit dashboard serves the results; GitHub Actions and Airflow orchestrate it](docs/architecture.svg)
 
 ## Roadmap
 

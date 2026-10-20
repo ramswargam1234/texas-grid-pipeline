@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1140 660" width="1140" height="660" role="img" aria-label="Architecture: EIA and Open-Meteo APIs, Python ingestion, S3 Parquet lake, dbt and DuckDB with tests, Streamlit dashboard, orchestrated by GitHub Actions and Airflow">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+<rect width="1140" height="660" fill="#ffffff"/>
+<text xml:space="preserve" x="30" y="40" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="22" font-weight="700" fill="#1f2328" text-anchor="start">Texas Grid &amp; Weather Data Pipeline</text>
+<text xml:space="preserve" x="30" y="64" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="14" font-weight="400" fill="#59636e" text-anchor="start">Hourly ERCOT demand, zones and fuel mix joined with Texas weather, from public APIs to a live dashboard</text>
+<text xml:space="preserve" x="30" y="104" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#59636e" text-anchor="start">SOURCES</text>
+<text xml:space="preserve" x="270" y="104" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#59636e" text-anchor="start">INGEST</text>
+<text xml:space="preserve" x="500" y="104" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#59636e" text-anchor="start">STORE</text>
+<text xml:space="preserve" x="735" y="104" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#59636e" text-anchor="start">TRANSFORM + TEST</text>
+<text xml:space="preserve" x="975" y="104" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="700" fill="#59636e" text-anchor="start">SERVE</text>
+<rect x="30" y="118" width="200" height="80" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="44" y="144" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">EIA: ERCOT hourly</text>
+<text xml:space="preserve" x="44" y="166" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">demand, day-ahead</text>
+<text xml:space="preserve" x="44" y="185" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">forecast, generation</text>
+<line x1="232" y1="158.0" x2="266" y2="285" stroke="#2a78d6" stroke-width="2" marker-end="url(#a)"/>
+<rect x="30" y="208" width="200" height="64" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="44" y="234" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">EIA: weather zones</text>
+<text xml:space="preserve" x="44" y="256" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">demand for 8 ERCOT zones</text>
+<line x1="232" y1="240.0" x2="266" y2="285" stroke="#2a78d6" stroke-width="2" marker-end="url(#a)"/>
+<rect x="30" y="282" width="200" height="80" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="44" y="308" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">EIA: fuel mix</text>
+<text xml:space="preserve" x="44" y="330" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">gas, wind, solar, coal,</text>
+<text xml:space="preserve" x="44" y="349" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">nuclear, batteries</text>
+<line x1="232" y1="322.0" x2="266" y2="285" stroke="#2a78d6" stroke-width="2" marker-end="url(#a)"/>
+<rect x="30" y="372" width="200" height="80" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="44" y="398" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">Open-Meteo</text>
+<text xml:space="preserve" x="44" y="420" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">hourly weather,</text>
+<text xml:space="preserve" x="44" y="439" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">9 Texas cities</text>
+<line x1="232" y1="412.0" x2="266" y2="285" stroke="#2a78d6" stroke-width="2" marker-end="url(#a)"/>
+<rect x="270" y="118" width="195" height="334" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="284" y="144" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">Python ingestion</text>
+<text xml:space="preserve" x="284" y="166" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">src/ingestion</text>
+<text xml:space="preserve" x="284" y="185" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start"></text>
+<text xml:space="preserve" x="284" y="204" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">• pagination (5,000 rows)</text>
+<text xml:space="preserve" x="284" y="223" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">• retries with backoff</text>
+<text xml:space="preserve" x="284" y="242" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">• API keys redacted in logs</text>
+<text xml:space="preserve" x="284" y="261" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">• one file per month,</text>
+<text xml:space="preserve" x="284" y="280" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">  overwritten (idempotent)</text>
+<text xml:space="preserve" x="284" y="299" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">• skips loaded months</text>
+<text xml:space="preserve" x="284" y="318" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">  (resumable backfill)</text>
+<text xml:space="preserve" x="284" y="337" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">• unit tests with fake</text>
+<text xml:space="preserve" x="284" y="356" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">  API responses</text>
+<line x1="467" y1="285" x2="496" y2="285" stroke="#2a78d6" stroke-width="2" marker-end="url(#a)"/>
+<rect x="500" y="118" width="205" height="190" rx="10" fill="#e7f0fb" stroke="#2a78d6" stroke-width="1.5"/>
+<text xml:space="preserve" x="514" y="144" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">AWS S3 data lake</text>
+<text xml:space="preserve" x="514" y="166" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">raw/&lt;dataset&gt;/</text>
+<text xml:space="preserve" x="514" y="185" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">  year=YYYY/month=MM/</text>
+<text xml:space="preserve" x="514" y="204" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">  data.parquet</text>
+<text xml:space="preserve" x="514" y="223" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start"></text>
+<text xml:space="preserve" x="514" y="242" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">incremental sync</text>
+<text xml:space="preserve" x="514" y="261" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">(MD5 vs ETag)</text>
+<rect x="500" y="322" width="205" height="78" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="514" y="348" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">state/warehouse.duckdb</text>
+<text xml:space="preserve" x="514" y="370" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">keeps snapshot history</text>
+<text xml:space="preserve" x="514" y="389" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">between cloud runs</text>
+<rect x="500" y="414" width="205" height="64" rx="10" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="514" y="440" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">Terraform</text>
+<text xml:space="preserve" x="514" y="462" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">bucket, encryption, IAM</text>
+<line x1="707" y1="213" x2="731" y2="213" stroke="#2a78d6" stroke-width="2" marker-end="url(#a)"/>
+<rect x="735" y="118" width="210" height="360" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="749" y="144" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">dbt + DuckDB</text>
+<rect x="749" y="160" width="182" height="50" rx="8" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="761" y="181" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="start">staging</text>
+<text xml:space="preserve" x="761" y="199" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#59636e" text-anchor="start">clean, dedupe, type</text>
+<line x1="840" y1="211" x2="840" y2="222" stroke="#59636e" stroke-width="2" marker-end="url(#a)"/>
+<rect x="749" y="224" width="182" height="50" rx="8" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="761" y="245" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="start">intermediate</text>
+<text xml:space="preserve" x="761" y="263" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#59636e" text-anchor="start">pivot, weather per zone</text>
+<line x1="840" y1="275" x2="840" y2="286" stroke="#59636e" stroke-width="2" marker-end="url(#a)"/>
+<rect x="749" y="288" width="182" height="50" rx="8" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="761" y="309" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="start">dims + facts</text>
+<text xml:space="preserve" x="761" y="327" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#59636e" text-anchor="start">star schema</text>
+<line x1="840" y1="339" x2="840" y2="350" stroke="#59636e" stroke-width="2" marker-end="url(#a)"/>
+<rect x="749" y="352" width="182" height="50" rx="8" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="761" y="373" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="start">marts</text>
+<text xml:space="preserve" x="761" y="391" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#59636e" text-anchor="start">Uri, zones, fuel, trends</text>
+<text xml:space="preserve" x="749" y="438" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="600" fill="#2a78d6" text-anchor="start">81 data tests · 6 unit tests</text>
+<text xml:space="preserve" x="749" y="456" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#59636e" text-anchor="start">SCD2 snapshot of EIA revisions</text>
+<line x1="947" y1="213" x2="971" y2="213" stroke="#2a78d6" stroke-width="2" marker-end="url(#a)"/>
+<rect x="975" y="118" width="140" height="120" rx="10" fill="#e7f0fb" stroke="#2a78d6" stroke-width="1.5"/>
+<text xml:space="preserve" x="989" y="144" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">Streamlit</text>
+<text xml:space="preserve" x="989" y="166" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">live dashboard,</text>
+<text xml:space="preserve" x="989" y="185" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">reads small CSV</text>
+<text xml:space="preserve" x="989" y="204" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">snapshot from</text>
+<text xml:space="preserve" x="989" y="223" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">the warehouse</text>
+<rect x="975" y="252" width="140" height="80" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="989" y="278" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">Report</text>
+<text xml:space="preserve" x="989" y="300" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">headline findings</text>
+<text xml:space="preserve" x="989" y="319" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">printed each run</text>
+<rect x="270" y="498" width="845" height="140" rx="10" fill="#f6f8fa" stroke="#d0d7de" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text xml:space="preserve" x="286" y="524" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">Orchestration</text>
+<rect x="286" y="538" width="400" height="86" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="300" y="564" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">GitHub Actions</text>
+<text xml:space="preserve" x="300" y="586" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">CI: pytest + dbt build on synthetic data, every push</text>
+<text xml:space="preserve" x="300" y="605" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">Daily refresh 8:17 AM CT: S3, ingest, dbt, snapshot</text>
+<rect x="700" y="538" width="400" height="86" rx="10" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text xml:space="preserve" x="714" y="564" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="600" fill="#1f2328" text-anchor="start">Airflow 3 (Docker Compose)</text>
+<text xml:space="preserve" x="714" y="586" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">Daily DAG + manual backfill DAG with retries</text>
+<text xml:space="preserve" x="714" y="605" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="400" fill="#59636e" text-anchor="start">Runs the same commands as the cloud job</text>
+</svg>
