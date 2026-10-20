@@ -6,22 +6,22 @@
   "first_date": "2020-12-31",
   "last_date": "2026-10-20",
   "rows_modeled": 608787,
-  "heat_slope_mwh_per_f": 1388.967083845025,
+  "heat_slope_mwh_per_f": 1388.967083845064,
   "hot_vs_mild_ratio": 1.7622185283593783,
-  "forecast_mape_pct": 2.471305465699224,
+  "forecast_mape_pct": 2.4713054656992304,
   "missing_hours": 2,
   "uri": {
     "shed_hours": 72.0,
     "shed_hours_with_data": 72.0,
     "unserved_gwh_forecast": 1342.453,
-    "unserved_gwh_weather": 1895.1602591613066,
+    "unserved_gwh_weather": 1895.1602591613057,
     "max_hourly_gap_forecast_mwh": 28885.0,
-    "max_hourly_gap_weather_mwh": 39106.14927393632,
+    "max_hourly_gap_weather_mwh": 39106.14927393629,
     "peak_forecast_mwh": 76783.0,
     "peak_weather_expected_mwh": 85365.00447488233,
     "peak_actual_mwh": 65255.0,
     "min_temp_f": 7.0,
-    "weather_model_avg_r2": 0.6662528553451905,
+    "weather_model_avg_r2": 0.6662528553451901,
     "extrapolated_hours": 25.0
   },
   "fuel": {
@@ -36,23 +36,23 @@
   "is_demo": false,
   "forecast_model": {
     "hours": 48550,
-    "model_mape_pct": 4.357026477106934,
-    "eia_mape_pct": 2.3782758640990984,
-    "model_peak_mape_pct": 4.571255745633531,
-    "eia_peak_mape_pct": 2.6347825689505115,
+    "model_mape_pct": 4.357026477106922,
+    "eia_mape_pct": 2.3782758640991037,
+    "model_peak_mape_pct": 4.571255745633532,
+    "eia_peak_mape_pct": 2.63478256895051,
     "first_date": "2021-03-31",
     "last_date": "2026-10-20",
     "model_version": "hgb-v2",
     "fw": {
       "hours": 48058,
-      "model_fw_mape_pct": 4.699578917314584,
-      "model_obs_mape_pct": 4.35731833171018,
-      "eia_mape_pct": 2.3617889365789138,
-      "temp_mae_f": 2.018206720233722,
+      "model_fw_mape_pct": 4.699578917314587,
+      "model_obs_mape_pct": 4.357318331710186,
+      "eia_mape_pct": 2.361788936578924,
+      "temp_mae_f": 2.0182067202337217,
       "first_date": "2021-03-31"
     }
   },
   "data_tests": 104,
   "unit_tests": 9,
-  "exported_at_utc": "2026-10-20T23:29:44+00:00"
+  "exported_at_utc": "2026-10-20T23:39:59+00:00"
 }
