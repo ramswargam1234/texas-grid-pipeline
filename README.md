@@ -309,6 +309,18 @@ actually happened (the model's own error) and with the **day-ahead weather forec
 hours: the part of the error caused by the weather forecast being wrong. The forecast-weather version is the fair
 comparison with ERCOT's day-ahead forecast.
 
+## Incremental models
+
+The seven big hourly tables (four staging models and `fct_grid_hourly`, `fct_zone_hourly`, `fct_fuel_hourly`) are
+**incremental**: each run re-processes only the last 45 days before the newest loaded hour and replaces those hours
+(`delete+insert` on `period_utc`). The lookback is what catches **late and revised data**: EIA revisions of recent
+hours, and grid hours that were first loaded before their weather arrived. The cutoff is computed first and inlined,
+so DuckDB also skips older `year=/month=` Parquet partitions, which matters most when reading from S3.
+
+A CI test proves an incremental run equals a full rebuild row for row, after adding a month and revising another.
+After changing these models' logic, rebuild once with `python -m src.run_dbt --full-refresh`. Reasoning and
+trade-offs: [ADR 0010](docs/adr/0010-incremental-models-with-lookback.md).
+
 ## Data freshness alerts
 
 Every source has a freshness rule in `transform/models/staging/_sources.yml`, set from its normal delay: EIA data

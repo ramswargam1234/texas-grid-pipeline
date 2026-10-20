@@ -1,3 +1,9 @@
+{{ config(
+    materialized = 'incremental',
+    unique_key = 'period_utc',
+    incremental_strategy = 'delete+insert',
+    on_schema_change = 'append_new_columns'
+) }}
 -- One row per (hour, city). Temperatures in Fahrenheit.
 with source as (
     select * from {{ source('raw', 'weather_hourly') }}
@@ -17,6 +23,7 @@ ranked as (
         ) as rn
     from source
     where temp_f is not null
+      and {{ incremental_filter('period_utc', partitioned=true) }}
 )
 
 select period_utc, city, temp_f, feels_like_f, humidity_pct, ingested_at

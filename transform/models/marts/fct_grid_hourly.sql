@@ -1,7 +1,14 @@
+{{ config(
+    materialized = 'incremental',
+    unique_key = 'period_utc',
+    incremental_strategy = 'delete+insert',
+    on_schema_change = 'append_new_columns'
+) }}
 -- Core fact table: one row per hour, Texas grid joined to Texas weather.
 -- Local (Central) time columns are added because grid peaks follow local daily routines.
 with grid as (
     select * from {{ ref('int_grid__hourly_pivoted') }}
+    where {{ incremental_filter('period_utc') }}
 ),
 
 weather as (

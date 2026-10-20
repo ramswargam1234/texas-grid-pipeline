@@ -1,3 +1,9 @@
+{{ config(
+    materialized = 'incremental',
+    unique_key = 'period_utc',
+    incremental_strategy = 'delete+insert',
+    on_schema_change = 'append_new_columns'
+) }}
 -- One row per (hour, ERCOT weather zone). Keeps the latest ingested value if a month was re-loaded.
 with source as (
     select * from {{ source('raw', 'eia_ercot_zone_hourly') }}
@@ -16,6 +22,7 @@ ranked as (
         ) as rn
     from source
     where parent = 'ERCO'
+      and {{ incremental_filter('period_utc', partitioned=true) }}
 )
 
 select period_utc, zone_code, zone_name, demand_mwh, ingested_at

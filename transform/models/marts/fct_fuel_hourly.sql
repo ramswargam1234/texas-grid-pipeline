@@ -1,7 +1,14 @@
+{{ config(
+    materialized = 'incremental',
+    unique_key = 'period_utc',
+    incremental_strategy = 'delete+insert',
+    on_schema_change = 'append_new_columns'
+) }}
 -- One row per hour and fuel type, with each fuel's share of that hour's generation.
 -- Battery charging (negative MWh) is kept as-is but left out of the hourly total, so shares add up to 100%.
 with fuel as (
     select * from {{ ref('stg_eia__ercot_fuel_hourly') }}
+    where {{ incremental_filter('period_utc') }}
 ),
 
 hour_totals as (

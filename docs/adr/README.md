@@ -14,6 +14,7 @@ trade-offs that were accepted.
 | [0007](0007-terraform-import-and-iam.md) | Terraform with import blocks; least-privilege IAM |
 | [0008](0008-testing-strategy.md) | Unit, data and reconciliation tests with deliberate severities |
 | [0009](0009-uri-unserved-demand-method.md) | Method for estimating unserved demand during Winter Storm Uri |
+| [0010](0010-incremental-models-with-lookback.md) | Incremental hourly models with a 45-day lookback for late and revised data |
 
 Format: Status, Context, Decision, Alternatives considered, Consequences. A superseded decision gets a new ADR
 rather than an edit, so the history of the reasoning is kept.

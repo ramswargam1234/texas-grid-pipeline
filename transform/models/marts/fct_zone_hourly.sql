@@ -1,3 +1,9 @@
+{{ config(
+    materialized = 'incremental',
+    unique_key = 'period_utc',
+    incremental_strategy = 'delete+insert',
+    on_schema_change = 'append_new_columns'
+) }}
 -- One row per hour and ERCOT weather zone: zone demand joined to that zone's own weather.
 with zones as (
     select distinct zone_code, zone_label from {{ ref('ercot_zone_cities') }}
@@ -18,3 +24,4 @@ select
 from {{ ref('stg_eia__ercot_zone_hourly') }} d
 left join zones z using (zone_code)
 left join {{ ref('int_weather__zone_hourly') }} w using (period_utc, zone_code)
+where {{ incremental_filter('d.period_utc') }}

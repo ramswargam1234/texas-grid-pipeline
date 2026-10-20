@@ -27,8 +27,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Unit tests
+      - name: Unit tests (+ incremental-vs-full-refresh equivalence test)
         run: python -m pytest -q
+        env:
+          RUN_SLOW_TESTS: "1"
 
       # The same one-command demo a new user runs: synthetic lake -> dbt build (all tests) -> report -> export.
       - name: Demo pipeline on synthetic data

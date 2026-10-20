@@ -18,6 +18,8 @@ vars:
   # Hour-starting timestamps in this window are counted as load-shed hours (72 hours).
   uri_shed_start: "2021-02-15 01:00:00"
   uri_shed_end: "2021-02-18 01:00:00"      # exclusive
+  # Incremental models re-process this many days before the latest loaded hour (late and revised data).
+  incremental_lookback_days: 45
   # Wider window shown on the dashboard, and excluded from the weather model's training data.
   uri_window_start: "2021-02-08 00:00:00"
   uri_window_end: "2021-02-22 00:00:00"    # exclusive

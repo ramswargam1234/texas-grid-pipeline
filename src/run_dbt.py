@@ -5,6 +5,7 @@ Usage:
     python -m src.run_dbt --target cloud     # dbt build reading raw files from S3
     python -m src.run_dbt --command test     # any dbt command
     python -m src.run_dbt --stage forecast   # the forecast models, after `python -m src.forecast`
+    python -m src.run_dbt --full-refresh     # rebuild incremental models from scratch
 """
 from __future__ import annotations
 
@@ -24,8 +25,10 @@ TRANSFORM_DIR = config.PROJECT_ROOT / "transform"
 STAGES = {"main": ["--exclude", "tag:forecast"], "forecast": ["--select", "tag:forecast"], "all": []}
 
 
-def run(command: str = "build", target: str = "dev", stage: str = "main") -> bool:
+def run(command: str = "build", target: str = "dev", stage: str = "main", full_refresh: bool = False) -> bool:
     args = [*command.split(), "--profiles-dir", ".", "--target", target, *STAGES[stage]]
+    if full_refresh:  # rebuild incremental models from scratch (needed after changing their logic or columns)
+        args.append("--full-refresh")
     # Warehouse file and raw lake follow DATA_DIR, so the demo can build in its own folder.
     os.environ.setdefault("DBT_DUCKDB_PATH", str(config.DATA_DIR / "warehouse.duckdb"))
     if target == "cloud":
@@ -49,8 +52,10 @@ def main() -> None:
     ap.add_argument("--command", default="build")
     ap.add_argument("--stage", choices=list(STAGES), default="main",
                     help="main: everything except the forecast models; forecast: only them")
+    ap.add_argument("--full-refresh", action="store_true",
+                    help="rebuild incremental models from scratch instead of processing only recent hours")
     a = ap.parse_args()
-    raise SystemExit(0 if run(a.command, a.target, a.stage) else 1)
+    raise SystemExit(0 if run(a.command, a.target, a.stage, a.full_refresh) else 1)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 
 PY ?= .venv/bin/python
 
-.PHONY: help setup demo demo-dashboard test build forecast freshness report dashboard backfill refresh sync
+.PHONY: help setup demo demo-dashboard test build full-refresh forecast freshness report dashboard backfill refresh sync
 
 help:  ## Show this list
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -28,6 +28,9 @@ build: setup  ## dbt build on your local lake, then the forecast and its models 
 	$(PY) -m src.run_dbt
 	$(PY) -m src.forecast
 	$(PY) -m src.run_dbt --stage forecast
+
+full-refresh: setup  ## Rebuild the incremental hourly models from scratch (after changing their logic)
+	$(PY) -m src.run_dbt --full-refresh
 
 forecast: setup  ## Re-run the whole demand-forecast backtest, then its dbt models
 	$(PY) -m src.forecast --force
