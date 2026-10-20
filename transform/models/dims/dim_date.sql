@@ -1,4 +1,4 @@
--- Calendar dimension: one row per Central-time date covered by the grid data.
+-- Calendar dimension: one row per Central-time date covered by the grid data, with US holidays.
 with bounds as (
     select
         min(cast(period_utc at time zone 'America/Chicago' as date)) as first_date,
@@ -28,5 +28,13 @@ select
         when month(date_day) in (6, 7, 8)  then 'Summer'
         else 'Fall'
     end                                             as season,
-    date_trunc('month', date_day)::date             as month_start
+    date_trunc('month', date_day)::date             as month_start,
+    h.holiday_date is not null                      as is_holiday,
+    h.holiday_name,
+    h.holiday_type,
+    coalesce(h.is_nerc_holiday, false)              as is_nerc_holiday,
+    -- A normal working day: weekday, and not a federal holiday (actual or observed).
+    isodow(date_day) not in (6, 7)
+        and coalesce(h.holiday_type, '') not like 'Federal%' as is_business_day
 from days
+left join {{ ref('us_holidays') }} h on h.holiday_date = days.date_day

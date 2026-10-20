@@ -9,6 +9,9 @@ load_dotenv()
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(os.getenv("DATA_DIR", PROJECT_ROOT / "data"))
 RAW_DIR = DATA_DIR / "raw"
+# Where export_dashboard writes and the dashboard reads its CSV snapshot. The demo points this at
+# data/demo/snapshot so it never overwrites the committed snapshot of real data.
+SNAPSHOT_DIR = Path(os.getenv("DASHBOARD_SNAPSHOT_DIR", PROJECT_ROOT / "dashboard" / "snapshot"))
 
 # ---- EIA (U.S. Energy Information Administration) ----
 EIA_API_KEY = os.getenv("EIA_API_KEY", "")

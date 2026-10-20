@@ -9,6 +9,7 @@ Run locally:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -16,7 +17,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-SNAPSHOT = Path(__file__).parent / "snapshot"
+# The demo (python -m src.demo) points this at its own snapshot; otherwise the committed one is used.
+SNAPSHOT = Path(os.getenv("DASHBOARD_SNAPSHOT_DIR", Path(__file__).parent / "snapshot"))
 REPO_URL = "https://github.com/ramswargam1234/texas-grid-pipeline"
 
 # Reference palette (validated): series 1 blue, series 2 orange, sequential blue ramp.
@@ -50,6 +52,7 @@ def load(snapshot_version: float):
         "zones": csv("zones") if (SNAPSHOT / "zones.csv").exists() else pd.DataFrame(),
         "heat_trend": (csv("zone_heat_trend") if (SNAPSHOT / "zone_heat_trend.csv").exists() else pd.DataFrame()),
         "heat_change": (csv("zone_heat_change") if (SNAPSHOT / "zone_heat_change.csv").exists() else pd.DataFrame()),
+        "holidays": csv("holidays") if (SNAPSHOT / "holidays.csv").exists() else pd.DataFrame(),
         "fuel_monthly": (csv("fuel_monthly", parse_dates=["month"])
                          if (SNAPSHOT / "fuel_monthly.csv").exists() else pd.DataFrame()),
         "fuel_condition": (csv("fuel_by_condition")
@@ -94,6 +97,10 @@ st.markdown(
     f"**{h['first_date']} → {h['last_date']}**. "
     f"Built with Python, AWS S3, dbt, DuckDB and Airflow. [Source code]({REPO_URL})"
 )
+
+if h.get("is_demo"):
+    st.warning("Demo mode: these numbers come from the synthetic sample data in `src/sample_data.py`, "
+               "not from EIA. The live dashboard shows the real data.", icon="🧪")
 
 # ---------- headline numbers ----------
 peak_time = pd.Timestamp(h["peak_time_local"])
@@ -307,6 +314,24 @@ if not zones.empty:
             st.caption("Holds under checks: the verdict stays the same when each hour's zone values are scaled to "
                        "ERCOT's total, and when 2025 (the year EIA's zone figures run 4–5% high) is left out.")
 
+# ---------- 4b2. holidays ----------
+hol = data["holidays"]
+if not hol.empty and len(hol) >= 3:
+    st.subheader("How much less power Texas uses on holidays")
+    st.markdown("Each holiday's average demand compared with the same weekday one and two weeks before and after. "
+                "Bars show the median across years; days 10°F+ warmer or colder than their comparison days are left out.")
+    hb = hol.sort_values("median_change_pct", ascending=False)
+    fig = px.bar(hb, x="median_change_pct", y="holiday_name", orientation="h",
+                 custom_data=["days", "min_change_pct", "max_change_pct"])
+    fig.update_traces(marker_color=BLUE, marker_line_width=0,
+                      hovertemplate="<b>%{y}</b><br>median %{x:+.1f}%<br>range %{customdata[1]:+.1f}% to "
+                                    "%{customdata[2]:+.1f}%<br>%{customdata[0]} days<extra></extra>")
+    fig = style(fig, height=max(260, 30 * len(hb)), x_title="Demand vs a normal day (%)")
+    fig.update_xaxes(ticksuffix="%", zeroline=True, zerolinecolor=MUTED)
+    fig.update_layout(hovermode="closest", bargap=0.3)
+    chart(fig, width="stretch")
+    st.caption("These flags feed the demand forecast: holidays behave like weekends, not like the weekday they fall on.")
+
 # ---------- 4c. fuel mix ----------
 fm, fc_ = data["fuel_monthly"], data["fuel_condition"]
 if not fm.empty:
@@ -380,7 +405,7 @@ with right:
     st.markdown(
         f"- **{h['rows_modeled']:,}** rows modeled across **{h['hours']:,}** hours\n"
         f"- **{h['missing_hours']:,}** hours missing from the EIA feed, caught by a dbt test\n"
-        f"- {h.get('data_tests', 81)} data tests and {h.get('unit_tests', 6)} unit tests run on every dbt build\n"
+        f"- {h.get('data_tests', 89)} data tests and {h.get('unit_tests', 7)} unit tests run on every dbt build\n"
         f"- Snapshot exported {h['exported_at_utc'][:10]}"
     )
     miss = data["missing"]

@@ -103,6 +103,11 @@ def main() -> None:
                         order by condition""").fetchall()
     if stress:
         print("Gas share          : " + ", ".join(f"{c} {s:.0%}" for c, s in stress))
+    hol = con.sql("""select holiday_name, median_change_pct from agg_holiday_summary
+                     where days > 0 order by median_change_pct limit 3""").fetchall()
+    if hol:
+        print("Biggest holiday dip: " + ", ".join(f"{n} {c:+.1f}%" for n, c in hol)
+              + " vs same weekday nearby (agg_holiday_summary)")
     print(f"Missing grid hours : {missing:,} (see dq_grid_missing_hours)")
     print()
 

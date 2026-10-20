@@ -30,14 +30,29 @@ An end-to-end data pipeline that joins **hourly Texas power grid (ERCOT) demand 
 The reasoning behind the main choices (warehouse, storage layout, orchestration, testing, security and the
 Uri method), including trade-offs and known weaknesses, is in [`docs/adr`](docs/adr/README.md).
 
-## Quickstart
+## Try it in one command
+
+No API keys, no AWS, no network beyond installing packages. Needs Python 3.11+ and `make` (macOS / Linux).
+
+```bash
+git clone https://github.com/ramswargam1234/texas-grid-pipeline.git
+cd texas-grid-pipeline
+make demo             # ~2 min the first time: installs, builds synthetic data, runs dbt with every test
+make demo-dashboard   # same, then opens the dashboard on the demo data
+```
+
+`make demo` writes everything to `data/demo/`: a synthetic lake (Dec 2020 to Aug 2021, with a Winter Storm Uri-like
+freeze and load shed), the DuckDB warehouse, the headline report and a dashboard snapshot. It never touches real data or the
+committed dashboard snapshot. Without `make` (e.g. Windows): `pip install -r requirements.txt -r dashboard/requirements.txt`,
+then `python -m src.demo --dashboard`. Run `make help` for the other shortcuts (`test`, `build`, `backfill`, `refresh`, `sync`).
+
+## Quickstart (real data)
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env            # add your free EIA key
 python -m pytest -q             # run tests
-python -m src.sample_data       # optional: synthetic data lake, no API keys needed
 
 # Backfill (safe to re-run: retries on server errors, skips months already loaded)
 python -m src.ingestion.eia_demand --start 2021-01-01
@@ -145,13 +160,15 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 | `fct_fuel_hourly` | 1 row / hour / fuel | Net generation by fuel type (gas, wind, solar, coal, nuclear, ...) and its share of the hour |
 | `agg_fuel_monthly`, `agg_fuel_yearly` | 1 row / month / fuel, 1 row / year | Fuel mix over time; renewable and carbon-free share by year |
 | `agg_fuel_by_condition` | 1 row / condition / fuel | Fuel shares in all hours vs. each year's top 5% demand hours vs. the Uri blackouts |
-| `dim_date`, `dim_zone`, `dim_series`, `dim_fuel` | 1 row / date, zone, series, fuel | Conformed dimensions shared by the fact tables |
+| `dim_date`, `dim_zone`, `dim_series`, `dim_fuel` | 1 row / date, zone, series, fuel | Conformed dimensions shared by the fact tables; `dim_date` flags US holidays and business days |
+| `agg_holiday_effect` | 1 row / holiday date | Demand vs the same weekday 1 and 2 weeks around it (non-holidays), with the temperature difference |
+| `agg_holiday_summary` | 1 row / holiday | Median demand change per holiday across years, leaving out weather-distorted days |
 | `agg_zone_profile` | 1 row / zone | Share of energy, peak, and heat sensitivity (MWh and % per °F above 75°F) |
 | `agg_zone_heat_trend` | 1 row / zone / year | Heat sensitivity per year with 95% confidence intervals, fit on daily averages for days ≥ 75°F |
 | `rpt_zone_heat_change` | 1 row / zone | First vs latest year; calls a change only when the two 95% intervals don't overlap |
 | `rpt_zone_heat_robustness` | 1 row / zone | Reruns that verdict with zones reconciled to ERCOT's total and with 2025 left out; `is_robust` when all agree |
 
-**Data tests (81):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
+**Data tests (89):** primary keys unique/not null, accepted series types and cities, one row per hour and type/city, plausible demand and temperature ranges, weather coverage, and a gap-tolerance test that **warns on any missing hour and fails above 240**, a completeness check on the 72 Uri load-shed hours, zone codes that must match the zone seed, a check that the 8 weather zones add up to ERCOT's total within 3%, fuel codes that must match the fuel seed (warn, so a new EIA code never breaks the build), fuel shares that add to 100% each hour, and a check that fuel generation adds up to net generation within 3%.
 
 ## History and unit tests
 
@@ -162,7 +179,8 @@ raw parquet ─► stg_eia__ercot_hourly ─► int_grid__hourly_pivoted ─┬�
 - **dbt unit tests** (`transform/models/unit_tests.yml`) check model logic on small hand-written inputs:
   the Uri forecast-gap math and load-shed window, season and weekend flags in `dim_date`, averaging of
   multi-city weather zones, fuel shares that leave out battery charging, the heat-trend slope and confidence
-  interval on a perfect line, and the rule that only calls a zone's change when the intervals don't overlap.
+  interval on a perfect line, the rule that only calls a zone's change when the intervals don't overlap, holiday and
+  business-day flags in `dim_date`, and a holiday baseline that skips other holidays.
 
 ## Star schema
 

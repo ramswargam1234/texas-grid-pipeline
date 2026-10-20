@@ -30,8 +30,6 @@ jobs:
       - name: Unit tests
         run: python -m pytest -q
 
-      - name: Build synthetic data lake
-        run: python -m src.sample_data
-
-      - name: dbt build (models, snapshots, unit + data tests)
-        run: python -m src.run_dbt
+      # The same one-command demo a new user runs: synthetic lake -> dbt build (all tests) -> report -> export.
+      - name: Demo pipeline on synthetic data
+        run: python -m src.demo

@@ -1,0 +1,166 @@
+holiday_date,holiday_name,holiday_type,is_nerc_holiday
+2020-01-01,New Year's Day,Federal,true
+2020-01-20,Martin Luther King Jr. Day,Federal,false
+2020-02-17,Presidents' Day,Federal,false
+2020-05-25,Memorial Day,Federal,true
+2020-07-03,Independence Day,Federal (observed),true
+2020-07-04,Independence Day,Federal,true
+2020-09-07,Labor Day,Federal,true
+2020-10-12,Columbus Day,Federal,false
+2020-11-11,Veterans Day,Federal,false
+2020-11-26,Thanksgiving Day,Federal,true
+2020-11-27,Day after Thanksgiving,Holiday-adjacent,false
+2020-12-24,Christmas Eve,Holiday-adjacent,false
+2020-12-25,Christmas Day,Federal,true
+2020-12-31,New Year's Eve,Holiday-adjacent,false
+2021-01-01,New Year's Day,Federal,true
+2021-01-18,Martin Luther King Jr. Day,Federal,false
+2021-02-15,Presidents' Day,Federal,false
+2021-05-31,Memorial Day,Federal,true
+2021-06-18,Juneteenth,Federal (observed),false
+2021-06-19,Juneteenth,Federal,false
+2021-07-04,Independence Day,Federal,true
+2021-07-05,Independence Day,Federal (observed),true
+2021-09-06,Labor Day,Federal,true
+2021-10-11,Columbus Day,Federal,false
+2021-11-11,Veterans Day,Federal,false
+2021-11-25,Thanksgiving Day,Federal,true
+2021-11-26,Day after Thanksgiving,Holiday-adjacent,false
+2021-12-24,Christmas Day,Federal (observed),true
+2021-12-25,Christmas Day,Federal,true
+2021-12-31,New Year's Day,Federal (observed),true
+2022-01-01,New Year's Day,Federal,true
+2022-01-17,Martin Luther King Jr. Day,Federal,false
+2022-02-21,Presidents' Day,Federal,false
+2022-05-30,Memorial Day,Federal,true
+2022-06-19,Juneteenth,Federal,false
+2022-06-20,Juneteenth,Federal (observed),false
+2022-07-04,Independence Day,Federal,true
+2022-09-05,Labor Day,Federal,true
+2022-10-10,Columbus Day,Federal,false
+2022-11-11,Veterans Day,Federal,false
+2022-11-24,Thanksgiving Day,Federal,true
+2022-11-25,Day after Thanksgiving,Holiday-adjacent,false
+2022-12-24,Christmas Eve,Holiday-adjacent,false
+2022-12-25,Christmas Day,Federal,true
+2022-12-26,Christmas Day,Federal (observed),true
+2022-12-31,New Year's Eve,Holiday-adjacent,false
+2023-01-01,New Year's Day,Federal,true
+2023-01-02,New Year's Day,Federal (observed),true
+2023-01-16,Martin Luther King Jr. Day,Federal,false
+2023-02-20,Presidents' Day,Federal,false
+2023-05-29,Memorial Day,Federal,true
+2023-06-19,Juneteenth,Federal,false
+2023-07-04,Independence Day,Federal,true
+2023-09-04,Labor Day,Federal,true
+2023-10-09,Columbus Day,Federal,false
+2023-11-10,Veterans Day,Federal (observed),false
+2023-11-11,Veterans Day,Federal,false
+2023-11-23,Thanksgiving Day,Federal,true
+2023-11-24,Day after Thanksgiving,Holiday-adjacent,false
+2023-12-24,Christmas Eve,Holiday-adjacent,false
+2023-12-25,Christmas Day,Federal,true
+2023-12-31,New Year's Eve,Holiday-adjacent,false
+2024-01-01,New Year's Day,Federal,true
+2024-01-15,Martin Luther King Jr. Day,Federal,false
+2024-02-19,Presidents' Day,Federal,false
+2024-05-27,Memorial Day,Federal,true
+2024-06-19,Juneteenth,Federal,false
+2024-07-04,Independence Day,Federal,true
+2024-09-02,Labor Day,Federal,true
+2024-10-14,Columbus Day,Federal,false
+2024-11-11,Veterans Day,Federal,false
+2024-11-28,Thanksgiving Day,Federal,true
+2024-11-29,Day after Thanksgiving,Holiday-adjacent,false
+2024-12-24,Christmas Eve,Holiday-adjacent,false
+2024-12-25,Christmas Day,Federal,true
+2024-12-31,New Year's Eve,Holiday-adjacent,false
+2025-01-01,New Year's Day,Federal,true
+2025-01-20,Martin Luther King Jr. Day,Federal,false
+2025-02-17,Presidents' Day,Federal,false
+2025-05-26,Memorial Day,Federal,true
+2025-06-19,Juneteenth,Federal,false
+2025-07-04,Independence Day,Federal,true
+2025-09-01,Labor Day,Federal,true
+2025-10-13,Columbus Day,Federal,false
+2025-11-11,Veterans Day,Federal,false
+2025-11-27,Thanksgiving Day,Federal,true
+2025-11-28,Day after Thanksgiving,Holiday-adjacent,false
+2025-12-24,Christmas Eve,Holiday-adjacent,false
+2025-12-25,Christmas Day,Federal,true
+2025-12-31,New Year's Eve,Holiday-adjacent,false
+2026-01-01,New Year's Day,Federal,true
+2026-01-19,Martin Luther King Jr. Day,Federal,false
+2026-02-16,Presidents' Day,Federal,false
+2026-05-25,Memorial Day,Federal,true
+2026-06-19,Juneteenth,Federal,false
+2026-07-03,Independence Day,Federal (observed),true
+2026-07-04,Independence Day,Federal,true
+2026-09-07,Labor Day,Federal,true
+2026-10-12,Columbus Day,Federal,false
+2026-11-11,Veterans Day,Federal,false
+2026-11-26,Thanksgiving Day,Federal,true
+2026-11-27,Day after Thanksgiving,Holiday-adjacent,false
+2026-12-24,Christmas Eve,Holiday-adjacent,false
+2026-12-25,Christmas Day,Federal,true
+2026-12-31,New Year's Eve,Holiday-adjacent,false
+2027-01-01,New Year's Day,Federal,true
+2027-01-18,Martin Luther King Jr. Day,Federal,false
+2027-02-15,Presidents' Day,Federal,false
+2027-05-31,Memorial Day,Federal,true
+2027-06-18,Juneteenth,Federal (observed),false
+2027-06-19,Juneteenth,Federal,false
+2027-07-04,Independence Day,Federal,true
+2027-07-05,Independence Day,Federal (observed),true
+2027-09-06,Labor Day,Federal,true
+2027-10-11,Columbus Day,Federal,false
+2027-11-11,Veterans Day,Federal,false
+2027-11-25,Thanksgiving Day,Federal,true
+2027-11-26,Day after Thanksgiving,Holiday-adjacent,false
+2027-12-24,Christmas Day,Federal (observed),true
+2027-12-25,Christmas Day,Federal,true
+2027-12-31,New Year's Day,Federal (observed),true
+2028-01-01,New Year's Day,Federal,true
+2028-01-17,Martin Luther King Jr. Day,Federal,false
+2028-02-21,Presidents' Day,Federal,false
+2028-05-29,Memorial Day,Federal,true
+2028-06-19,Juneteenth,Federal,false
+2028-07-04,Independence Day,Federal,true
+2028-09-04,Labor Day,Federal,true
+2028-10-09,Columbus Day,Federal,false
+2028-11-10,Veterans Day,Federal (observed),false
+2028-11-11,Veterans Day,Federal,false
+2028-11-23,Thanksgiving Day,Federal,true
+2028-11-24,Day after Thanksgiving,Holiday-adjacent,false
+2028-12-24,Christmas Eve,Holiday-adjacent,false
+2028-12-25,Christmas Day,Federal,true
+2028-12-31,New Year's Eve,Holiday-adjacent,false
+2029-01-01,New Year's Day,Federal,true
+2029-01-15,Martin Luther King Jr. Day,Federal,false
+2029-02-19,Presidents' Day,Federal,false
+2029-05-28,Memorial Day,Federal,true
+2029-06-19,Juneteenth,Federal,false
+2029-07-04,Independence Day,Federal,true
+2029-09-03,Labor Day,Federal,true
+2029-10-08,Columbus Day,Federal,false
+2029-11-11,Veterans Day,Federal,false
+2029-11-12,Veterans Day,Federal (observed),false
+2029-11-22,Thanksgiving Day,Federal,true
+2029-11-23,Day after Thanksgiving,Holiday-adjacent,false
+2029-12-24,Christmas Eve,Holiday-adjacent,false
+2029-12-25,Christmas Day,Federal,true
+2029-12-31,New Year's Eve,Holiday-adjacent,false
+2030-01-01,New Year's Day,Federal,true
+2030-01-21,Martin Luther King Jr. Day,Federal,false
+2030-02-18,Presidents' Day,Federal,false
+2030-05-27,Memorial Day,Federal,true
+2030-06-19,Juneteenth,Federal,false
+2030-07-04,Independence Day,Federal,true
+2030-09-02,Labor Day,Federal,true
+2030-10-14,Columbus Day,Federal,false
+2030-11-11,Veterans Day,Federal,false
+2030-11-28,Thanksgiving Day,Federal,true
+2030-11-29,Day after Thanksgiving,Holiday-adjacent,false
+2030-12-24,Christmas Eve,Holiday-adjacent,false
+2030-12-25,Christmas Day,Federal,true
+2030-12-31,New Year's Eve,Holiday-adjacent,false

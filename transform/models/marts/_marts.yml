@@ -206,3 +206,21 @@ models:
     columns:
       - name: zone_code
         data_tests: [unique, not_null]
+
+  - name: agg_holiday_effect
+    description: >
+      One row per holiday in the data: average demand vs the same weekday 1 and 2 weeks before and after
+      (non-holidays only), as a % change, with the temperature difference for context.
+    columns:
+      - name: date_local
+        data_tests: [unique, not_null]
+      - name: demand_change_pct
+        description: (holiday demand - baseline) / baseline x 100. Negative = lower than a normal day.
+
+  - name: agg_holiday_summary
+    description: >
+      One row per holiday: median % change in demand vs nearby normal days across all years, leaving out
+      days more than 10°F warmer or colder than their baseline.
+    columns:
+      - name: holiday_name
+        data_tests: [unique, not_null]

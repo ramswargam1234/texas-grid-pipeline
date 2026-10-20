@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime, timezone
 
 import duckdb
@@ -18,7 +19,7 @@ from src.ingestion import config
 
 log = logging.getLogger("export_dashboard")
 DB_PATH = config.DATA_DIR / "warehouse.duckdb"
-OUT_DIR = config.PROJECT_ROOT / "dashboard" / "snapshot"
+OUT_DIR = config.SNAPSHOT_DIR
 
 FUEL_GROUP = """case fuel_key when 'WND' then 'Wind' when 'NG' then 'Natural gas' when 'NUC' then 'Nuclear'
                        when 'SUN' then 'Solar' when 'SNB' then 'Solar' when 'COL' then 'Coal'
@@ -89,6 +90,14 @@ QUERIES = {
         left join rpt_zone_heat_robustness r using (zone_code)
         order by c.change_pct_points desc
     """,
+    # Typical demand change on each holiday vs nearby normal days.
+    "holidays": """
+        select holiday_name, is_nerc_holiday, days, median_change_pct, min_change_pct, max_change_pct,
+               weather_distorted_days_left_out
+        from agg_holiday_summary
+        where days > 0
+        order by median_change_pct
+    """,
     # Monthly fuel mix, small fuels folded into "Other" so the chart stays readable.
     "fuel_monthly": f"""
         select month, {FUEL_GROUP} as fuel, sum(generation_gwh) as generation_gwh, sum(share) as share
@@ -157,6 +166,7 @@ def headline(con) -> dict:
         "missing_hours": missing,
         "uri": uri,
         "fuel": fuel_summary,
+        "is_demo": os.getenv("PIPELINE_DEMO") == "1",
         **test_counts(),
         "exported_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }

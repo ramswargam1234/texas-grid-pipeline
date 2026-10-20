@@ -4,13 +4,13 @@ texas_grid:
     # Reads raw Parquet from the local lake (data/raw).
     dev:
       type: duckdb
-      path: ../data/warehouse.duckdb
+      path: "{{ env_var('DBT_DUCKDB_PATH', '../data/warehouse.duckdb') }}"
       threads: 4
 
     # Reads raw Parquet straight from S3 (run via: python -m src.run_dbt --target cloud).
     cloud:
       type: duckdb
-      path: ../data/warehouse.duckdb
+      path: "{{ env_var('DBT_DUCKDB_PATH', '../data/warehouse.duckdb') }}"
       threads: 4
       extensions:
         - httpfs

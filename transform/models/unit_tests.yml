@@ -24,18 +24,22 @@ unit_tests:
         - {period_local: "2021-02-15 03:00:00", is_load_shed: false, unserved_vs_forecast_mwh: null}
 
   - name: dim_date_assigns_seasons_and_weekends
-    description: Season comes from the month; Saturday and Sunday are weekends.
+    description: Season comes from the month; Saturday and Sunday are weekends; a federal holiday is not a business day.
     model: dim_date
     given:
       - input: ref('int_grid__hourly_pivoted')
         rows:
           - {period_utc: "2024-01-06 18:00:00+00"}
-          - {period_utc: "2024-01-08 18:00:00+00"}
+          - {period_utc: "2024-01-09 18:00:00+00"}
+      - input: ref('us_holidays')
+        rows:
+          - {holiday_date: "2024-01-08", holiday_name: Test Holiday, holiday_type: Federal, is_nerc_holiday: false}
     expect:
       rows:
-        - {date_key: 20240106, season: Winter, day_name: Saturday, is_weekend: true}
-        - {date_key: 20240107, season: Winter, day_name: Sunday, is_weekend: true}
-        - {date_key: 20240108, season: Winter, day_name: Monday, is_weekend: false}
+        - {date_key: 20240106, season: Winter, day_name: Saturday, is_weekend: true,  is_holiday: false, is_business_day: false}
+        - {date_key: 20240107, season: Winter, day_name: Sunday,   is_weekend: true,  is_holiday: false, is_business_day: false}
+        - {date_key: 20240108, season: Winter, day_name: Monday,   is_weekend: false, is_holiday: true,  is_business_day: false}
+        - {date_key: 20240109, season: Winter, day_name: Tuesday,  is_weekend: false, is_holiday: false, is_business_day: true}
 
   - name: zone_weather_averages_multi_city_zones
     description: A zone with two reference cities (South Central) gets the average of both.
@@ -111,3 +115,28 @@ unit_tests:
         - {zone_code: COAS, first_year: 2021, latest_year: 2025, verdict: More heat-sensitive}
         - {zone_code: FWES, first_year: 2021, latest_year: 2025, verdict: No clear change}
         - {zone_code: NRTH, first_year: 2021, latest_year: 2025, verdict: Less heat-sensitive}
+
+  - name: holiday_baseline_skips_other_holidays
+    description: >
+      Christmas is compared with the same weekday 1 and 2 weeks around it; New Year's Day (one week later)
+      is a holiday too, so it is left out of the baseline.
+    model: agg_holiday_effect
+    given:
+      - input: ref('agg_grid_daily')
+        rows:
+          - {date_local: "2024-12-11", avg_demand_mwh: 50000, avg_temp_f: 50, hours_with_demand: 24}
+          - {date_local: "2024-12-18", avg_demand_mwh: 50000, avg_temp_f: 50, hours_with_demand: 24}
+          - {date_local: "2024-12-25", avg_demand_mwh: 40000, avg_temp_f: 50, hours_with_demand: 24}
+          - {date_local: "2025-01-01", avg_demand_mwh: 30000, avg_temp_f: 40, hours_with_demand: 24}
+          - {date_local: "2025-01-08", avg_demand_mwh: 50000, avg_temp_f: 50, hours_with_demand: 24}
+      - input: ref('dim_date')
+        rows:
+          - {date_day: "2024-12-11", is_holiday: false, holiday_name: null, holiday_type: null, is_nerc_holiday: false, day_name: Wednesday}
+          - {date_day: "2024-12-18", is_holiday: false, holiday_name: null, holiday_type: null, is_nerc_holiday: false, day_name: Wednesday}
+          - {date_day: "2024-12-25", is_holiday: true, holiday_name: Christmas Day, holiday_type: Federal, is_nerc_holiday: true, day_name: Wednesday}
+          - {date_day: "2025-01-01", is_holiday: true, holiday_name: New Year's Day, holiday_type: Federal, is_nerc_holiday: true, day_name: Wednesday}
+          - {date_day: "2025-01-08", is_holiday: false, holiday_name: null, holiday_type: null, is_nerc_holiday: false, day_name: Wednesday}
+    expect:
+      rows:
+        - {date_local: "2024-12-25", baseline_days: 3, baseline_demand_mwh: 50000, demand_change_pct: -20.0}
+        - {date_local: "2025-01-01", baseline_days: 2, baseline_demand_mwh: 50000, demand_change_pct: -40.0}

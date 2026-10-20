@@ -7,6 +7,10 @@ models:
       - name: date_key
         description: Integer YYYYMMDD key used by every fact table.
         data_tests: [unique, not_null]
+      - name: is_holiday
+        description: True on US federal holidays (actual or observed) and holiday-adjacent days (see us_holidays).
+      - name: is_business_day
+        description: Weekday that is not a federal holiday.
       - name: season
         data_tests:
           - accepted_values:
