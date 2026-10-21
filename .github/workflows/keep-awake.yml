@@ -1,0 +1,31 @@
+# Visits the live dashboard every 6 hours so Streamlit Community Cloud never puts it to sleep (it sleeps after
+# ~12 hours without a visitor, and a recruiter would land on a "get this app back up" page).
+# Needs no secrets. If the app can't be brought up, the run fails and GitHub emails you.
+name: Keep dashboard awake
+
+on:
+  schedule:
+    - cron: "43 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install a headless browser
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Visit the app (wakes it if asleep)
+        run: python -m src.keep_awake

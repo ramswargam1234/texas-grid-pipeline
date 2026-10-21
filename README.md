@@ -114,6 +114,7 @@ docker compose down              # stop
 |---|---|---|
 | [`ci.yml`](.github/workflows/ci.yml) | every push and pull request | Unit tests, then a full `dbt build` (models + data tests) on a synthetic data lake from `src/sample_data.py`. No secrets needed. |
 | [`daily-refresh.yml`](.github/workflows/daily-refresh.yml) | daily 13:17 UTC, or on demand | Pulls the lake from S3, loads the latest EIA and weather data, syncs back to S3, rebuilds dbt, and commits a fresh dashboard snapshot. Streamlit Cloud redeploys on that commit. |
+| [`keep-awake.yml`](.github/workflows/keep-awake.yml) | every 6 hours, or on demand | Opens the live dashboard in a headless browser ([`src/keep_awake.py`](src/keep_awake.py)) so Streamlit Cloud never puts it to sleep. Clicks the wake button if it is shown, and fails (GitHub emails you) if the dashboard doesn't come up. No secrets. |
 
 The daily job uses its own IAM access key (stored as GitHub secrets `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, plus `EIA_API_KEY`), separate from the local development key, so either can be revoked on its own.
 
