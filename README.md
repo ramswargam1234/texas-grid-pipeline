@@ -309,6 +309,23 @@ actually happened (the model's own error) and with the **day-ahead weather forec
 hours: the part of the error caused by the weather forecast being wrong. The forecast-weather version is the fair
 comparison with ERCOT's day-ahead forecast.
 
+## Data contracts at ingestion
+
+Every dataset has a contract in `src/ingestion/contracts.py` (Pandera), checked inside `write_monthly`, so no loader
+can skip it. A contract requires the columns and types, non-null and unique keys (one row per hour and series / zone /
+fuel / city), physically plausible values (ERCOT demand 0–150,000 MWh, temperatures −40 to 130°F, humidity 0–100%),
+and real hours (not before 2015, not in the future). Storage fuels (BAT, OES, UES, PS) may go down to −30,000 MWh because they report negative generation while charging; other fuels stay at −10,000. Extra columns are allowed, so an API adding a field doesn't break
+anything. A batch that fails is **not written**: it goes to `data/quarantine/<dataset>/<time>/` with every failing check
+listed, and the load stops with an error such as:
+
+```
+eia_ercot_hourly: batch of 2 rows broke its data contract and was NOT written.
+  value_mwh | in_range(0, 150000): 1 rows, e.g. 7500000.0
+```
+
+Contracts stop bad data **before** the lake; the dbt tests check what's **in** the warehouse. `make contracts`
+(`python -m src.ingestion.contracts`) audits every existing lake file against today's contracts, read-only.
+
 ## Incremental models
 
 The seven big hourly tables (four staging models and `fct_grid_hourly`, `fct_zone_hourly`, `fct_fuel_hourly`) are

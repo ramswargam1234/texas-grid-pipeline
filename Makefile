@@ -3,7 +3,7 @@
 
 PY ?= .venv/bin/python
 
-.PHONY: help setup demo demo-dashboard test build full-refresh forecast freshness report dashboard backfill refresh sync
+.PHONY: help setup demo demo-dashboard test build full-refresh forecast contracts freshness report dashboard backfill refresh sync
 
 help:  ## Show this list
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  make %-16s %s\n", $$1, $$2}'
@@ -35,6 +35,9 @@ full-refresh: setup  ## Rebuild the incremental hourly models from scratch (afte
 forecast: setup  ## Re-run the whole demand-forecast backtest, then its dbt models
 	$(PY) -m src.forecast --force
 	$(PY) -m src.run_dbt --stage forecast
+
+contracts: setup  ## Audit every file already in the lake against the data contracts (read-only)
+	$(PY) -m src.ingestion.contracts
 
 freshness: setup  ## Is every source still delivering? (age of the newest hour per source)
 	$(PY) -m src.freshness check

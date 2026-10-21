@@ -61,6 +61,8 @@ def write_monthly(df: pd.DataFrame, dataset: str, ts_col: str, base: Path) -> li
     if df.empty:
         log.warning("%s: no rows to write", dataset)
         return []
+    from src.ingestion.contracts import validate  # every dataset with a contract is checked before writing
+    df = validate(df, dataset, base.parent / "quarantine")
     paths = []
     keys = df[ts_col].dt.tz_convert(None).dt.to_period("M")  # partition by UTC month
     for period, part in df.groupby(keys):
