@@ -1,9 +1,9 @@
 zone_code,zone_label,first_year,latest_year,first_pct_per_f,latest_pct_per_f,change_pct_points,verdict,is_robust,verdict_reconciled,verdict_issue_year_out
-WEST,West (Abilene),2021,2026,1.6949,2.3959,0.701,More heat-sensitive,True,More heat-sensitive,More heat-sensitive
-EAST,East (Tyler),2021,2026,2.3047,2.2702,-0.0345,No clear change,True,No clear change,No clear change
-FWES,Far West (Permian Basin),2021,2026,0.5118,0.2228,-0.289,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
-SOUT,Southern (Corpus Christi),2021,2026,2.8119,2.5126,-0.2993,No clear change,True,No clear change,No clear change
-SCEN,South Central (Austin-San Antonio),2021,2026,2.9672,2.5893,-0.3779,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
-NCEN,North Central (Dallas-Fort Worth),2021,2026,3.0368,2.3433,-0.6935,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
-COAS,Coast (Houston),2021,2026,3.336,2.1466,-1.1894,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
-NRTH,North (Wichita Falls),2021,2026,2.9894,1.1697,-1.8197,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
+WEST,West (Abilene),2021,2026,1.6949,2.3953,0.7004,More heat-sensitive,True,More heat-sensitive,More heat-sensitive
+EAST,East (Tyler),2021,2026,2.3047,2.2715,-0.0332,No clear change,True,No clear change,No clear change
+FWES,Far West (Permian Basin),2021,2026,0.5118,0.2229,-0.2889,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
+SOUT,Southern (Corpus Christi),2021,2026,2.8119,2.4984,-0.3135,No clear change,True,No clear change,No clear change
+SCEN,South Central (Austin-San Antonio),2021,2026,2.9672,2.5908,-0.3764,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
+NCEN,North Central (Dallas-Fort Worth),2021,2026,3.0368,2.3448,-0.692,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
+COAS,Coast (Houston),2021,2026,3.336,2.1474,-1.1886,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
+NRTH,North (Wichita Falls),2021,2026,2.9894,1.1705,-1.8189,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
