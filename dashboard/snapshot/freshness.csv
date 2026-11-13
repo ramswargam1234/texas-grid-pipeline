@@ -1,7 +1,7 @@
 source,status,latest_data_utc,age_hours,warn_after,error_after,checked_at_utc
-eia_ercot_fuel_hourly,pass,2026-11-12T05:00:00+00:00,15.9,2 days,4 days,2026-11-12T20:52:19.225123Z
-eia_ercot_hourly,pass,2026-11-12T23:00:00+00:00,-2.1,2 days,4 days,2026-11-12T20:52:19.225123Z
-eia_ercot_zone_hourly,pass,2026-11-11T06:00:00+00:00,38.9,2 days,4 days,2026-11-12T20:52:19.225123Z
-model_demand_forecast_hourly,pass,2026-11-12T23:00:00+00:00,-2.1,3 days,7 days,2026-11-12T20:52:19.225123Z
-weather_forecast_hourly,pass,2026-11-12T23:00:00+00:00,-2.1,3 days,7 days,2026-11-12T20:52:19.225123Z
-weather_hourly,pass,2026-11-06T23:00:00+00:00,141.9,9 days,14 days,2026-11-12T20:52:19.225123Z
+eia_ercot_fuel_hourly,pass,2026-11-13T05:00:00+00:00,15.6,2 days,4 days,2026-11-13T20:33:18.476116Z
+eia_ercot_hourly,pass,2026-11-13T23:00:00+00:00,-2.4,2 days,4 days,2026-11-13T20:33:18.476116Z
+eia_ercot_zone_hourly,pass,2026-11-12T06:00:00+00:00,38.6,2 days,4 days,2026-11-13T20:33:18.476116Z
+model_demand_forecast_hourly,pass,2026-11-13T23:00:00+00:00,-2.4,3 days,7 days,2026-11-13T20:33:18.476116Z
+weather_forecast_hourly,pass,2026-11-13T23:00:00+00:00,-2.4,3 days,7 days,2026-11-13T20:33:18.476116Z
+weather_hourly,pass,2026-11-07T23:00:00+00:00,141.6,9 days,14 days,2026-11-13T20:33:18.476116Z
