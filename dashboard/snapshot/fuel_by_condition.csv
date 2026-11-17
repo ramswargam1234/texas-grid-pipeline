@@ -1,16 +1,16 @@
 condition,fuel,share,avg_mw,hours
-All hours,Coal,0.143846,7509.84,51462
-All hours,Natural gas,0.423285,22098.7,51462
-All hours,Nuclear,0.089151,4654.35,51462
-All hours,Other,0.00771381,402.719,51462
-All hours,Solar,0.0969779,5062.97,51462
-All hours,Wind,0.239026,12479,51462
-Top 5% demand hours,Coal,0.133229,10299.6,2577
-Top 5% demand hours,Natural gas,0.491088,37964.7,2577
-Top 5% demand hours,Nuclear,0.0633096,4894.3,2577
-Top 5% demand hours,Other,0.00846148,654.135,2577
-Top 5% demand hours,Solar,0.168589,13033.2,2577
-Top 5% demand hours,Wind,0.135323,10461.4,2577
+All hours,Coal,0.143844,7509.65,51486
+All hours,Natural gas,0.423339,22101.2,51486
+All hours,Nuclear,0.0891453,4653.99,51486
+All hours,Other,0.0077232,403.203,51486
+All hours,Solar,0.0969844,5063.24,51486
+All hours,Wind,0.238964,12475.5,51486
+Top 5% demand hours,Coal,0.133229,10299.9,2578
+Top 5% demand hours,Natural gas,0.491113,37967.6,2578
+Top 5% demand hours,Nuclear,0.0633085,4894.33,2578
+Top 5% demand hours,Other,0.00848662,656.094,2578
+Top 5% demand hours,Solar,0.16852,13028.2,2578
+Top 5% demand hours,Wind,0.135342,10463.2,2578
 Uri load shed,Coal,0.168485,7723.51,72
 Uri load shed,Natural gas,0.657835,30155.7,72
 Uri load shed,Nuclear,0.0849549,3894.4,72
