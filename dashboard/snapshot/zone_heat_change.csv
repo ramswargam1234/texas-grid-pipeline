@@ -1,9 +1,9 @@
 zone_code,zone_label,first_year,latest_year,first_pct_per_f,latest_pct_per_f,change_pct_points,verdict,is_robust,verdict_reconciled,verdict_issue_year_out
-WEST,West (Abilene),2021,2026,1.6949,2.3895,0.6946,More heat-sensitive,True,More heat-sensitive,More heat-sensitive
-EAST,East (Tyler),2021,2026,2.3047,2.2913,-0.0134,No clear change,True,No clear change,No clear change
+WEST,West (Abilene),2021,2026,1.6949,2.3888,0.6939,More heat-sensitive,True,More heat-sensitive,More heat-sensitive
+EAST,East (Tyler),2021,2026,2.3047,2.2932,-0.0115,No clear change,True,No clear change,No clear change
 FWES,Far West (Permian Basin),2021,2026,0.5118,0.2233,-0.2885,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
-SOUT,Southern (Corpus Christi),2021,2026,2.8119,2.4934,-0.3185,No clear change,True,No clear change,No clear change
-SCEN,South Central (Austin-San Antonio),2021,2026,2.9672,2.6103,-0.3569,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
-NCEN,North Central (Dallas-Fort Worth),2021,2026,3.0368,2.3668,-0.67,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
-COAS,Coast (Houston),2021,2026,3.336,2.1732,-1.1628,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
-NRTH,North (Wichita Falls),2021,2026,2.9894,1.1841,-1.8053,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
+SOUT,Southern (Corpus Christi),2021,2026,2.8119,2.4947,-0.3172,No clear change,True,No clear change,No clear change
+SCEN,South Central (Austin-San Antonio),2021,2026,2.9672,2.6123,-0.3549,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
+NCEN,North Central (Dallas-Fort Worth),2021,2026,3.0368,2.3685,-0.6683,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
+COAS,Coast (Houston),2021,2026,3.336,2.1747,-1.1613,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
+NRTH,North (Wichita Falls),2021,2026,2.9894,1.1858,-1.8036,Less heat-sensitive,True,Less heat-sensitive,Less heat-sensitive
